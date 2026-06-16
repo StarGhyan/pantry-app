@@ -1,0 +1,64 @@
+:root {
+  --paper: #fbf7ee;
+  --paper-raised: #ffffff;
+  --ink: #2e3324;
+  --ink-soft: #5c6650;
+  --ink-faint: #8c9480;
+  --line: #ddd8c6;
+  --line-strong: #c7c1aa;
+  --sage: #e7ebda;
+  --sage-deep: #3d4a2e;
+  --terracotta: #c4683d;
+  --terracotta-deep: #8c4426;
+  --terracotta-soft: #f3e3d8;
+  --cream: #f3eee0;
+  --danger: #a23b2e;
+  --bg: #f1ede0;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-sans);
+  color: var(--ink);
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+select {
+  font-size: 16px;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 4px;
+}
