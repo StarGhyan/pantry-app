@@ -264,9 +264,9 @@ function inputStyle(extra) {
   return { border: "1px solid " + THEME.lineStrong, borderRadius: 9, padding: "8px 12px", fontSize: 14, background: THEME.paperRaised, color: THEME.ink, ...extra };
 }
 
-/* Image slot — real device camera via capture="environment" on mobile,
-   falls back to the photo library / file picker on desktop. Shows an
-   uploading spinner state while the file goes to Supabase Storage. */
+/* Image slot — on mobile this opens the native picker (camera, photo library,
+   or files), since no capture attribute is set. Desktop shows a normal file
+   picker. Shows an uploading spinner while the file goes to Supabase Storage. */
 function ImageSlot({ value, onChange, size = 96, editing = false, shape = "square" }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -325,7 +325,6 @@ function ImageSlot({ value, onChange, size = 96, editing = false, shape = "squar
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         style={{ position: "absolute", left: 0, top: 0, width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
         onChange={handleFile}
       />
