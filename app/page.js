@@ -1006,7 +1006,7 @@ export default function App() {
       </>}
 
       {/* ═══ WORKOUT SECTION ═══ */}
-      {!isNutrition && <>
+      {isWorkout && <>
         {wTab==="exercises"&&<WorkoutExercises exercises={exercises} cats={wCats} catById={wCatById}
           onOpen={ex=>{setOpenEx(ex);setExMode("view");}}
           onAdd={()=>{setOpenEx({id:uid("wex"),name:"",emoji:"🏋️",tags:[],image:null,type:"strength",met:5});setExMode("edit");}}
