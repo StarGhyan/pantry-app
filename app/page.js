@@ -951,23 +951,21 @@ function scaleIng(ing) {
   return {cal:(n.cal||0)*f,protein:(n.protein||0)*f,carbs:(n.carbs||0)*f,fat:(n.fat||0)*f,fiber:(n.fiber||0)*f,sugar:(n.sugar||0)*f};
 }
 
-/* "per 1 egg (50g)" or "per 100g" */
+/* "per 1 ct (50g)" or "per 100g" */
 function portionLabel(n) {
-  if (n?.countLabel && n?.countGrams) {
+  if (n?.countGrams) {
     const u = n.unit === "ml" ? "ml" : "g";
-    return `per 1 ${n.countLabel} (${n.countGrams}${u})`;
+    return `per 1 ct (${n.countGrams}${u})`;
   }
   return `per ${Number(n?.portion)||100}${n?.unit||"g"}`;
 }
 
-/* Display an ingredient amount: "2 eggs" or "150g" */
+/* Display an ingredient amount: "2 ct (100g)" or "150g" */
 function fmtAmt(amount, unit, nutrition) {
-  if (unit === "unit" && nutrition?.countLabel) {
+  if (unit === "unit" && nutrition?.countGrams) {
     const n = Number(amount)||0;
-    const label = nutrition.countLabel;
-    const plural = n !== 1 && !label.endsWith("s") ? "s" : "";
     const g = rnd(n * (Number(nutrition.countGrams)||100));
-    return `${n} ${label}${plural} (${g}g)`;
+    return `${n} ct (${g}g)`;
   }
   return `${amount}${unit}`;
 }
@@ -1673,7 +1671,7 @@ function CatTab({ active, onClick, label, count, p }) {
 /* QuickPickPopup — inline amount picker that appears when "Select" is tapped on a card */
 function QuickPickPopup({ food, onSelect, onClose }) {
   const n = food.nutrition;
-  const hasCount = !!(n.countLabel && n.countGrams);
+  const hasCount = !!n.countGrams;
   const defaultUnit = hasCount ? "unit" : (n.unit || "g");
   const defaultAmt  = hasCount ? 1 : (Number(n.portion) || 100);
   const [amt, setAmt] = useState(String(defaultAmt));
@@ -1683,8 +1681,8 @@ function QuickPickPopup({ food, onSelect, onClose }) {
     ? (Number(amt)||defaultAmt) * Number(n.countGrams) / 100
     : portionToG(Number(amt)||defaultAmt, unit) / 100;
 
-  const amtLabel = unit === "unit" && n.countLabel
-    ? `${amt} ${n.countLabel}${Number(amt)!==1&&!n.countLabel.endsWith("s")?"s":""} (${rnd((Number(amt)||0)*Number(n.countGrams))}g)`
+  const amtLabel = unit === "unit" && n.countGrams
+    ? `${amt} ct = ${rnd((Number(amt)||0)*Number(n.countGrams))}g`
     : null;
 
   return (
@@ -1699,7 +1697,7 @@ function QuickPickPopup({ food, onSelect, onClose }) {
         <input type="number" value={amt} onChange={e => setAmt(e.target.value)}
           style={IS({ width: 70, padding: "5px 8px", fontSize: 14, fontFamily: "monospace" })} autoFocus />
         <select value={unit} onChange={e=>{setUnit(e.target.value);setAmt(e.target.value==="unit"?"1":String(Number(n.portion)||100));}} style={IS({ padding: "5px 6px", fontSize: 13, width: "auto" })}>
-          {hasCount && <option value="unit">{n.countLabel}</option>}
+          {hasCount && <option value="unit">ct</option>}
           <option value="g">g</option><option value="ml">ml</option>
           <option value="oz">oz</option><option value="lb">lb</option>
           <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
@@ -2117,7 +2115,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
                   value={calcAmt} onChange={e=>setCalcAmt(e.target.value)}
                   style={Object.assign({},IS({width:70,padding:"5px 8px",fontSize:14,fontFamily:"monospace"}),{background:T.raised})}/>
                 <select value={calcUnit} onChange={e=>{setCalcUnit(e.target.value);setCalcAmt(e.target.value==="unit"?"1":"");}} style={Object.assign({},IS({padding:"5px 8px",fontSize:13,width:"auto"}),{background:T.raised})}>
-                  {food.nutrition?.countLabel&&<option value="unit">{food.nutrition.countLabel}</option>}
+                  {food.nutrition?.countGrams&&<option value="unit">ct</option>}
                   <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
                   <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
                 </select>
@@ -2401,7 +2399,7 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
           <div style={{display:"flex",gap:4}}>
             <input type="number" value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:Number(e.target.value)||0}:x))} style={IS({width:60,padding:"5px 6px",fontFamily:"monospace"})}/>
             <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value,amount:e.target.value==="unit"?1:x.amount}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
-              {ri.nutrition?.countLabel&&<option value="unit">{ri.nutrition.countLabel}</option>}
+              {ri.nutrition?.countGrams&&<option value="unit">ct</option>}
               <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
               <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
             </select>
