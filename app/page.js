@@ -1179,10 +1179,18 @@ function migrateStoredData() {
       let entry = f;
       if (!doneVersion) {
         const seed = seedByName.get(key);
-        // Only re-sync tags/emoji for known seed foods, keep user's image & custom nutrition
         if (seed) entry = { ...f, tags: seed.tags, emoji: f.emoji || seed.emoji };
       }
-      seen.set(key, entry); // last wins → removes duplicates
+      // Always backfill cookMethods + countLabel from seed if food has none yet
+      // (safe: only fills in missing data, never overwrites user customisations)
+      const seed = seedByName.get(key);
+      if (seed) {
+        if (!entry.cookMethods?.length && seed.cookMethods?.length)
+          entry = { ...entry, cookMethods: seed.cookMethods };
+        if (!entry.nutrition?.countLabel && seed.nutrition?.countLabel)
+          entry = { ...entry, nutrition: { ...entry.nutrition, countLabel: seed.nutrition.countLabel, countGrams: seed.nutrition.countGrams } };
+      }
+      seen.set(key, entry);
     }
     foods = [...seen.values()];
 
@@ -2009,9 +2017,13 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
   const toStore = v => v===""?"":(editF>0?Number(v||0)/editF:0);
   const hasName=!!name.trim();
   const calcF=(()=>{
-    const baseUnit=food.nutrition&&food.nutrition.unit||"g";
-    if(calcAmt!==""&&Number(calcAmt)>0) return portionToG(Number(calcAmt),calcUnit)/100;
-    return portionToG(Number(food.nutrition&&food.nutrition.portion)||100,baseUnit)/100;
+    const fn=food.nutrition;
+    const baseUnit=fn?.unit||"g";
+    if(calcAmt!==""&&Number(calcAmt)>0){
+      if(calcUnit==="unit"&&fn?.countGrams) return Number(calcAmt)*Number(fn.countGrams)/100;
+      return portionToG(Number(calcAmt),calcUnit)/100;
+    }
+    return portionToG(Number(fn?.portion)||100,baseUnit)/100;
   })();
   const isCalcMode=calcAmt!==""&&Number(calcAmt)>0;
 
@@ -2104,7 +2116,8 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
                 <input type="number" inputMode="decimal" placeholder={String(food.nutrition.portion)}
                   value={calcAmt} onChange={e=>setCalcAmt(e.target.value)}
                   style={Object.assign({},IS({width:70,padding:"5px 8px",fontSize:14,fontFamily:"monospace"}),{background:T.raised})}/>
-                <select value={calcUnit} onChange={e=>setCalcUnit(e.target.value)} style={Object.assign({},IS({padding:"5px 8px",fontSize:13,width:"auto"}),{background:T.raised})}>
+                <select value={calcUnit} onChange={e=>{setCalcUnit(e.target.value);setCalcAmt(e.target.value==="unit"?"1":"");}} style={Object.assign({},IS({padding:"5px 8px",fontSize:13,width:"auto"}),{background:T.raised})}>
+                  {food.nutrition?.countLabel&&<option value="unit">{food.nutrition.countLabel}</option>}
                   <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
                   <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
                 </select>
@@ -2126,24 +2139,53 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
     </div>
 
     {/* Cooking methods */}
-    <div style={{marginBottom:14,paddingTop:14,borderTop:"1px solid "+T.line}}>
-      <Label>Cooking methods</Label>
-      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:editing?8:0}}>
-        {(editing?cookMethods:food.cookMethods||[]).map((m,i)=>(
-          <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 9px",borderRadius:7}}>
-            {m}
-            {editing&&<button onClick={()=>setCookMethods(p=>p.filter((_,j)=>j!==i))} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.sageD,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>}
-          </span>
-        ))}
-        {(editing?cookMethods:food.cookMethods||[]).length===0&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
-      </div>
-      {editing&&<div style={{display:"flex",gap:6}}>
-        <input value={newMethod} onChange={e=>setNewMethod(e.target.value)}
-          placeholder="e.g. Grilled, Boiled, Raw…" style={IS({fontSize:13,flex:1})}
-          onKeyDown={e=>{if(e.key==="Enter"&&newMethod.trim()){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}}/>
-        <Btn onClick={()=>{if(newMethod.trim()){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}} disabled={!newMethod.trim()}>Add</Btn>
-      </div>}
-    </div>
+    {(()=>{
+      const suggested = COOK_METHODS_MAP[normK(food.name)] || [];
+      const active = editing ? cookMethods : (food.cookMethods||[]);
+      const custom = active.filter(m => !suggested.includes(m));
+      function toggleMethod(m){
+        setCookMethods(prev => prev.includes(m) ? prev.filter(x=>x!==m) : [...prev,m]);
+      }
+      return <div style={{marginBottom:14,paddingTop:14,borderTop:"1px solid "+T.line}}>
+        <Label>Cooking methods</Label>
+        {editing ? <>
+          {suggested.length>0&&<>
+            <p style={{fontSize:11,color:T.faint,margin:"0 0 7px"}}>Tap to select:</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+              {suggested.map(m=>{const on=cookMethods.includes(m);return(
+                <button key={m} onClick={()=>toggleMethod(m)} style={{
+                  fontSize:12,fontWeight:600,padding:"4px 11px",borderRadius:8,cursor:"pointer",
+                  fontFamily:"system-ui,sans-serif",transition:"all 0.12s",
+                  border:on?"1.5px solid "+T.sageD:"1px solid "+T.lineS,
+                  background:on?T.sageD:"transparent",color:on?"#FBF7EE":T.soft,
+                }}>{on?"✓ ":""}{m}</button>
+              );})}
+            </div>
+          </>}
+          {custom.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+            {custom.map((m,i)=>(
+              <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 9px",borderRadius:7}}>
+                {m}
+                <button onClick={()=>setCookMethods(p=>p.filter(x=>x!==m))} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.sageD,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
+              </span>
+            ))}
+          </div>}
+          <div style={{display:"flex",gap:6}}>
+            <input value={newMethod} onChange={e=>setNewMethod(e.target.value)}
+              placeholder="+ Custom method…" style={IS({fontSize:13,flex:1})}
+              onKeyDown={e=>{if(e.key==="Enter"&&newMethod.trim()&&!cookMethods.includes(newMethod.trim())){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}}/>
+            <Btn onClick={()=>{if(newMethod.trim()&&!cookMethods.includes(newMethod.trim())){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}} disabled={!newMethod.trim()}>+ New</Btn>
+          </div>
+        </> : <>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {active.map((m,i)=>(
+              <span key={i} style={{fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 10px",borderRadius:7}}>{m}</span>
+            ))}
+            {active.length===0&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
+          </div>
+        </>}
+      </div>;
+    })()}
 
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap"}}>
       {!editing?<>
