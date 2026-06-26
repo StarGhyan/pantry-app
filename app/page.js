@@ -1401,8 +1401,8 @@ export default function App() {
           onAdd={(recipe, newIngs) => { saveRecipe({...recipe,ingredients:[...recipe.ingredients,...newIngs]}); setAddToRecipeModal(null); flash("Added"); }}
           onNewRecipe={(ings) => { setOpenRecipe({id:uid("rec"),name:"",image:null,ingredients:ings}); setRecipeMode("edit"); setTab("recipes"); setAddToRecipeModal(null); }}/>}
 
-        {tab==="recipes"&&<Recipes recipes={recipes} totals={totals}
-          onNew={()=>{setOpenRecipe({id:uid("rec"),name:"",image:null,ingredients:[]});setRecipeMode("edit");}}
+        {tab==="recipes"&&<Recipes recipes={recipes} totals={totals} foods={foods} catById={catById}
+          onNew={(ings=[])=>{setOpenRecipe({id:uid("rec"),name:"",image:null,servings:1,ingredients:ings});setRecipeMode("edit");}}
           onOpen={r=>{setOpenRecipe(r);setRecipeMode("view");}} onDelete={delRecipe} onDup={dupRecipe}/>}
 
         {tab==="plan"&&<Plan plan={plan} recipes={recipes} totals={totals} perServing={perServing}
@@ -2239,8 +2239,13 @@ function CatModal({cats,catById,onClose,onAdd,onDelete,onColor,onRename}){
   </Modal>;
 }
 
-function Recipes({recipes,totals,onNew,onOpen,onDelete,onDup}){
+function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
   const [sortBy,setSortBy]=useState("recent");
+  const [recipeSearch,setRecipeSearch]=useState("");
+  const [bQuery,setBQuery]=useState("");      // builder ingredient search
+  const [bItems,setBItems]=useState([]);      // selected builder ingredients
+  const bQueryRef=useRef(null);
+
   const SORTS=[
     {id:"recent",  label:"Recent"},
     {id:"protein", label:"↑ Protein"},
@@ -2248,31 +2253,199 @@ function Recipes({recipes,totals,onNew,onOpen,onDelete,onDup}){
     {id:"cal_hi",  label:"↑ Calories"},
     {id:"cal_lo",  label:"↓ Calories"},
   ];
-  const sorted=useMemo(()=>[...recipes].sort((a,b)=>{
-    if(sortBy==="recent") return (b.createdAt||0)-(a.createdAt||0);
-    const ta=totals(a),tb=totals(b);
-    if(sortBy==="protein") return tb.protein-ta.protein;
-    if(sortBy==="fiber")   return tb.fiber-ta.fiber;
-    if(sortBy==="cal_hi")  return tb.cal-ta.cal;
-    if(sortBy==="cal_lo")  return ta.cal-tb.cal;
-    return 0;
-  }),[recipes,sortBy,totals]);
+
+  /* Filter + sort existing recipes */
+  const filtered=useMemo(()=>{
+    let arr=recipes;
+    if(recipeSearch.trim()) arr=arr.filter(r=>r.name.toLowerCase().includes(recipeSearch.toLowerCase()));
+    return [...arr].sort((a,b)=>{
+      if(sortBy==="recent") return (b.createdAt||0)-(a.createdAt||0);
+      const ta=totals(a),tb=totals(b);
+      if(sortBy==="protein") return tb.protein-ta.protein;
+      if(sortBy==="fiber")   return tb.fiber-ta.fiber;
+      if(sortBy==="cal_hi")  return tb.cal-ta.cal;
+      if(sortBy==="cal_lo")  return ta.cal-tb.cal;
+      return 0;
+    });
+  },[recipes,recipeSearch,sortBy,totals]);
+
+  /* Builder: search results */
+  const bResults=useMemo(()=>{
+    const q=bQuery.trim().toLowerCase();
+    if(!q) return [];
+    const selIds=new Set(bItems.map(b=>b.food.id));
+    return foods.filter(f=>!selIds.has(f.id)&&f.name.toLowerCase().includes(q)).slice(0,8);
+  },[foods,bQuery,bItems]);
+
+  /* Builder: smart suggestions from existing recipes */
+  const bSuggestions=useMemo(()=>{
+    if(bItems.length===0) return [];
+    const selIds=new Set(bItems.map(b=>b.food.id));
+    const selNames=new Set(bItems.map(b=>b.food.name.toLowerCase()));
+    const counts=new Map(); const fmap=new Map();
+    for(const rec of recipes){
+      const has=rec.ingredients.some(ing=>
+        (ing.foodId&&selIds.has(ing.foodId))||selNames.has(ing.name.toLowerCase())
+      );
+      if(!has) continue;
+      for(const ing of rec.ingredients){
+        const food=foods.find(f=>f.id===ing.foodId||f.name.toLowerCase()===ing.name.toLowerCase());
+        if(!food||selIds.has(food.id)) continue;
+        counts.set(food.id,(counts.get(food.id)||0)+1);
+        fmap.set(food.id,food);
+      }
+    }
+    return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12).map(([id])=>fmap.get(id));
+  },[bItems,recipes,foods]);
+
+  /* Builder: running nutrition */
+  const bTotals=useMemo(()=>bItems.reduce((acc,s)=>{
+    const g=s.unit==="unit"&&s.food.nutrition?.countGrams
+      ?Number(s.amount)*Number(s.food.nutrition.countGrams)
+      :portionToG(Number(s.amount),s.unit);
+    const n=s.food.nutrition; const f=g/100;
+    return{cal:acc.cal+(n.cal||0)*f,protein:acc.protein+(n.protein||0)*f,
+           carbs:acc.carbs+(n.carbs||0)*f,fat:acc.fat+(n.fat||0)*f};
+  },{cal:0,protein:0,carbs:0,fat:0}),[bItems]);
+
+  function bAdd(food){
+    const hasCount=!!food.nutrition?.countGrams;
+    const unit=hasCount?"unit":(food.nutrition?.unit||"g");
+    const amount=hasCount?1:(food.nutrition?.portion||100);
+    setBItems(prev=>[...prev,{food,amount,unit}]);
+    setBQuery(""); bQueryRef.current?.focus();
+  }
+  function bRemove(id){setBItems(prev=>prev.filter(b=>b.food.id!==id));}
+  function bCreate(){
+    const ings=bItems.map(b=>({foodId:b.food.id,name:b.food.name,emoji:b.food.emoji,
+      image:b.food.image,nutrition:b.food.nutrition,amount:b.amount,unit:b.unit,cookMethod:""}));
+    onNew(ings); setBItems([]);
+  }
 
   return <div>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
-      <div className="scroll-x" style={{display:"flex",gap:5,flex:1}}>
+    {/* ── Smart Recipe Builder ── */}
+    <div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:16,padding:"14px 16px",marginBottom:20,boxShadow:"0 2px 12px rgba(0,0,0,0.05)"}}>
+      <p style={{fontSize:11,fontWeight:800,color:T.faint,textTransform:"uppercase",letterSpacing:"0.05em",margin:"0 0 10px"}}>Build a recipe</p>
+
+      {/* Search to add ingredient */}
+      <div style={{position:"relative",marginBottom:12}}>
+        <input ref={bQueryRef} value={bQuery} onChange={e=>setBQuery(e.target.value)}
+          placeholder="Search ingredient to add…" style={IS({paddingLeft:10})}/>
+        {bResults.length>0&&<div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,
+          background:T.raised,border:"1px solid "+T.line,borderRadius:10,
+          boxShadow:"0 8px 24px rgba(0,0,0,0.12)",zIndex:20,overflow:"hidden"}}>
+          {bResults.map(food=>{
+            const n=food.nutrition;
+            const cal=rnd((n.cal||0)*(portionToG(n.countGrams||n.portion||100,n.countGrams?"g":n.unit||"g")/100));
+            return <div key={food.id} onClick={()=>bAdd(food)} style={{
+              display:"flex",alignItems:"center",gap:10,padding:"9px 14px",
+              cursor:"pointer",borderBottom:"1px solid "+T.line,
+            }}>
+              <span style={{fontSize:22,flexShrink:0}}>{food.emoji||"🍽"}</span>
+              <span style={{flex:1,fontSize:13,fontWeight:600}}>{food.name}</span>
+              <span style={{fontSize:11,color:T.faint,fontFamily:"monospace"}}>{n.countGrams?"1 ct":"per "+(n.portion||100)+(n.unit||"g")} · {cal} cal</span>
+              <span style={{fontSize:18,color:T.sageD}}>+</span>
+            </div>;
+          })}
+        </div>}
+      </div>
+
+      {bItems.length>0?<>
+        {/* Left nutrition + right ingredient chips */}
+        <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"flex-start"}}>
+          {/* Nutrition panel */}
+          <div style={{background:T.sageD,color:"#FBF7EE",borderRadius:12,padding:"12px 14px",minWidth:86,flexShrink:0,textAlign:"center"}}>
+            <div style={{fontSize:28,fontWeight:800,lineHeight:1}}>{rnd(bTotals.cal)}</div>
+            <div style={{fontSize:9,opacity:0.65,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>cal total</div>
+            <div style={{fontSize:10,opacity:0.7,lineHeight:1.7}}>
+              <div>{rnd(bTotals.protein,1)}g prot</div>
+              <div>{rnd(bTotals.carbs,1)}g carb</div>
+              <div>{rnd(bTotals.fat,1)}g fat</div>
+            </div>
+          </div>
+
+          {/* Ingredient chips */}
+          <div style={{flex:1,display:"flex",flexWrap:"wrap",gap:8}}>
+            {bItems.map(sel=>{
+              const n=sel.food.nutrition;
+              const g=sel.unit==="unit"&&n?.countGrams
+                ?Number(sel.amount)*Number(n.countGrams)
+                :portionToG(Number(sel.amount),sel.unit);
+              const cal=rnd((n.cal||0)*g/100);
+              const p=(sel.food.tags||[]).length>0&&catById[sel.food.tags[0]]?catById[sel.food.tags[0]].palette:null;
+              return <div key={sel.food.id} style={{
+                display:"inline-flex",alignItems:"center",
+                borderRadius:12,overflow:"hidden",
+                border:"1px solid "+T.line,
+                boxShadow:"0 2px 8px rgba(0,0,0,0.07)",
+              }}>
+                {/* Blurred background image panel */}
+                <div style={{position:"relative",width:44,height:44,flexShrink:0}}>
+                  <div style={{position:"absolute",inset:0,background:p?p.soft:T.cream}}/>
+                  {sel.food.image&&<img src={sel.food.image} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"blur(8px)",opacity:0.45}}/>}
+                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {sel.food.image
+                      ?<img src={sel.food.image} alt="" style={{width:28,height:28,objectFit:"cover",borderRadius:6}}/>
+                      :<span style={{fontSize:22}}>{sel.food.emoji||"🍽"}</span>}
+                  </div>
+                </div>
+                {/* Name + nutrition */}
+                <div style={{padding:"4px 8px",background:T.raised,minWidth:0}}>
+                  <p style={{fontWeight:700,fontSize:12,margin:"0 0 1px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:110}}>{sel.food.name}</p>
+                  <p style={{fontSize:10,color:T.faint,margin:0,fontFamily:"monospace"}}>
+                    {fmtAmt(sel.amount,sel.unit,n)}{" · "}<b style={{color:T.ink}}>{cal}</b>{" cal"}
+                  </p>
+                </div>
+                <button onClick={()=>bRemove(sel.food.id)} style={{
+                  width:26,height:"100%",border:"none",background:T.raised,
+                  color:T.faint,cursor:"pointer",fontSize:16,flexShrink:0,
+                  borderLeft:"1px solid "+T.line,display:"flex",alignItems:"center",justifyContent:"center",
+                }}>×</button>
+              </div>;
+            })}
+          </div>
+        </div>
+
+        {/* Suggestions */}
+        {bSuggestions.length>0&&<div style={{marginBottom:12}}>
+          <p style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:"uppercase",letterSpacing:"0.05em",margin:"0 0 7px"}}>Pairs well with</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {bSuggestions.map(food=><div key={food.id} onClick={()=>bAdd(food)} style={{
+              display:"flex",alignItems:"center",gap:6,cursor:"pointer",
+              background:T.cream,border:"1px solid "+T.line,borderRadius:8,padding:"5px 10px 5px 7px",
+            }}>
+              <span style={{fontSize:17}}>{food.emoji||"🍽"}</span>
+              <span style={{fontSize:12,fontWeight:600}}>{food.name}</span>
+            </div>)}
+          </div>
+        </div>}
+
+        <div style={{display:"flex",justifyContent:"flex-end"}}>
+          <Btn onClick={bCreate}>Create recipe →</Btn>
+        </div>
+      </>
+      :<p style={{fontSize:13,color:T.faint,textAlign:"center",margin:"4px 0 0"}}>Search an ingredient above to start building</p>}
+    </div>
+
+    {/* ── Existing Recipes ── */}
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8,flexWrap:"wrap"}}>
+      <div className="scroll-x" style={{display:"flex",gap:5}}>
         {SORTS.map(s=>{const a=sortBy===s.id;return <button key={s.id} onClick={()=>setSortBy(s.id)} style={{
           flexShrink:0,fontSize:12,fontWeight:600,padding:"5px 11px",borderRadius:16,cursor:"pointer",
-          fontFamily:"system-ui,sans-serif",
-          border:a?"1.5px solid "+T.sageD:"1px solid "+T.line,
+          fontFamily:"system-ui,sans-serif",border:a?"1.5px solid "+T.sageD:"1px solid "+T.line,
           background:a?T.sage:"transparent",color:a?T.sageD:T.soft,
         }}>{s.label}</button>;})}
       </div>
-      <Btn icon="+" onClick={onNew}>New recipe</Btn>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <input value={recipeSearch} onChange={e=>setRecipeSearch(e.target.value)}
+          placeholder="Search recipes…" style={IS({fontSize:13,padding:"6px 10px",width:160})}/>
+        <Btn icon="+" onClick={()=>onNew([])}>New</Btn>
+      </div>
     </div>
-    {recipes.length===0?<Empty icon="chef" title="No recipes yet" body="Combine pantry foods into a saved recipe."/>
+    {recipes.length===0?<Empty icon="chef" title="No recipes yet" body="Use the builder above or tap New."/>
+    :filtered.length===0?<Empty icon="search" title="No recipes match" body="Try a different search."/>
     :<div className="card-grid">
-      {sorted.map(r=>{const t=totals(r);return <div key={r.id} style={{display:"flex",flexDirection:"column",height:"100%"}}>
+      {filtered.map(r=>{const t=totals(r);return <div key={r.id} style={{display:"flex",flexDirection:"column",height:"100%"}}>
         <div onClick={()=>onOpen(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer",flex:1,display:"flex",flexDirection:"column"}}>
           <div style={{width:"100%",aspectRatio:"1.15",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             {r.image?<img src={r.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:30}}>🍳</span>}
