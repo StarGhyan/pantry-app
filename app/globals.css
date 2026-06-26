@@ -97,7 +97,7 @@ img {
   display: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .app-sidebar {
     display: none;
   }
@@ -141,7 +141,7 @@ img {
   gap: 14px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .food-grid-full {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -179,7 +179,7 @@ img {
 }
 
 /* Mobile: scroll horizontally instead of wrapping */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .cat-strip {
     flex-wrap: nowrap;
     overflow-x: auto;
