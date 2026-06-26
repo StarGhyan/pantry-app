@@ -315,6 +315,53 @@ const NDB = {
   "coconut oil":         {cal:862,protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:99,  unit:"g", portion:14},
   "sesame oil":          {cal:884,protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:100, unit:"g", portion:14},
   "avocado oil":         {cal:884,protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:100, unit:"g", portion:14},
+  /* NEW */
+  "green peas":          {cal:81, protein:5.4, carbs:14.5,sugar:5.7, fiber:5.1, fat:0.4, unit:"g", portion:100},
+  "green onion":         {cal:32, protein:1.8, carbs:7.3, sugar:2.3, fiber:2.6, fat:0.2, unit:"g", portion:30},
+  "cabbage":             {cal:25, protein:1.3, carbs:5.8, sugar:3.2, fiber:2.5, fat:0.1, unit:"g", portion:100},
+  "vinegar":             {cal:3,  protein:0,   carbs:0.1, sugar:0,   fiber:0,   fat:0,   unit:"tbsp",portion:1},
+  "olive oil":           {cal:884,protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:100, unit:"g", portion:14},
+};
+
+/* Default cooking methods per food (keyed by normalised name) */
+const COOK_METHODS_MAP = {
+  "egg":                ["Raw","Scrambled","Boiled","Fried","Poached","Omelette"],
+  "chicken - breast":   ["Raw","Grilled","Baked","Sautéed","Boiled","Pan-fried"],
+  "chicken - thigh":    ["Raw","Grilled","Baked","Sautéed","Braised"],
+  "chicken - wings":    ["Raw","Baked","Fried","Grilled"],
+  "chicken - drumstick":["Raw","Baked","Grilled","Fried"],
+  "whole chicken":      ["Raw","Roasted","Baked"],
+  "beef - ground":      ["Raw","Pan-fried","Baked","Grilled"],
+  "beef - steak":       ["Raw","Grilled","Pan-fried","Roasted"],
+  "salmon":             ["Raw","Grilled","Baked","Pan-fried","Poached"],
+  "tuna":               ["Raw","Baked","Pan-fried","Grilled"],
+  "shrimp":             ["Raw","Grilled","Sautéed","Boiled","Fried"],
+  "tomato":             ["Raw","Roasted","Sautéed"],
+  "bell pepper":        ["Raw","Roasted","Sautéed","Grilled"],
+  "mushroom":           ["Raw","Sautéed","Roasted","Grilled"],
+  "broccoli":           ["Raw","Steamed","Roasted","Sautéed"],
+  "spinach":            ["Raw","Sautéed","Steamed"],
+  "zucchini":           ["Raw","Sautéed","Grilled","Roasted"],
+  "sweet potato":       ["Raw","Baked","Boiled","Roasted","Mashed"],
+  "yellow potato":      ["Raw","Boiled","Baked","Roasted","Mashed"],
+  "cauliflower":        ["Raw","Roasted","Steamed","Sautéed","Mashed"],
+  "carrot":             ["Raw","Cooked","Roasted","Steamed"],
+  "onion":              ["Raw","Caramelised","Sautéed","Roasted"],
+  "garlic":             ["Raw","Roasted","Minced","Sautéed"],
+  "green beans":        ["Raw","Steamed","Sautéed","Blanched"],
+  "green beans - canned":["Drained","Sautéed","Steamed"],
+  "green peas":         ["Raw","Boiled","Steamed","Sautéed"],
+  "cabbage":            ["Raw","Shredded","Sautéed","Braised","Pickled"],
+  "kale":               ["Raw","Sautéed","Baked","Steamed"],
+  "oats":               ["Raw","Cooked","Overnight"],
+  "white rice":         ["Cooked"],
+  "brown rice":         ["Cooked"],
+  "pasta":              ["Cooked"],
+  "pasta - dry":        ["Cooked"],
+  "quinoa":             ["Cooked"],
+  "avocado":            ["Raw","Mashed","Sliced"],
+  "bread":              ["Plain","Toasted"],
+  "bread - whole wheat":["Plain","Toasted"],
 };
 
 const SEED = [
@@ -486,9 +533,168 @@ const SEED = [
   {n:"Coconut oil",         e:"🥥", t:["oil"]},
   {n:"Sesame oil",          e:"🌰", t:["oil"]},
   {n:"Avocado oil",         e:"🥑", t:["oil"]},
+  /* NEW FOODS */
+  {n:"Green peas",          e:"🫛", t:["veg","hifiber","protein","lowcal"]},
+  {n:"Green onion",         e:"🌿", t:["veg","seasoning","lowcal"]},
+  {n:"Cabbage",             e:"🥬", t:["veg","hifiber","lowcal"]},
+  {n:"Vinegar",             e:"🫙", t:["seasoning"]},
 ];
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+/* ── Pre-seeded recipes ── */
+const SEED_RECIPES_V1 = [
+  /* EGG DISHES */
+  {id:"srec_scrambled_eggs",  name:"Scrambled Eggs",            servings:1, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Scrambled"},
+    {n:"Butter",              a:14,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_boiled_eggs",     name:"Boiled Eggs",               servings:1, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Boiled"},
+    {n:"Salt",                a:1,   u:"g"},
+  ]},
+  {id:"srec_egg_green_beans", name:"Egg with Green Beans",      servings:1, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Fried"},
+    {n:"Green beans - canned",a:240, u:"g",   cm:"Drained"},
+    {n:"Butter",              a:14,  u:"g"},
+    {n:"Garlic powder",       a:1,   u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_egg_green_onion", name:"Egg with Green Onion",      servings:1, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Scrambled"},
+    {n:"Green onion",         a:30,  u:"g"},
+    {n:"Butter",              a:14,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_eggs_tomato",     name:"Eggs with Tomato",          servings:1, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Scrambled"},
+    {n:"Tomato",              a:120, u:"g",   cm:"Sautéed"},
+    {n:"Butter",              a:14,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_shakshuka",       name:"Shakshuka",                 servings:2, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Poached"},
+    {n:"Tomato",              a:360, u:"g",   cm:"Sautéed"},
+    {n:"Bell pepper",         a:120, u:"g",   cm:"Sautéed"},
+    {n:"Onion",               a:80,  u:"g",   cm:"Sautéed"},
+    {n:"Garlic",              a:12,  u:"g"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Cumin",               a:2,   u:"g"},
+    {n:"Paprika",             a:3,   u:"g"},
+    {n:"Chili powder",        a:2,   u:"g"},
+    {n:"Salt",                a:2,   u:"g"},
+  ]},
+  {id:"srec_eggs_peas",       name:"Eggs with Green Peas",      servings:1, ings:[
+    {n:"Egg",                 a:150, u:"g",   cm:"Fried"},
+    {n:"Green peas",          a:100, u:"g",   cm:"Sautéed"},
+    {n:"Butter",              a:14,  u:"g"},
+    {n:"Garlic powder",       a:1,   u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  /* SALADS */
+  {id:"srec_cabbage_lemon",   name:"Shredded Cabbage Salad",    servings:2, ings:[
+    {n:"Cabbage",             a:300, u:"g",   cm:"Shredded"},
+    {n:"Lemon",               a:30,  u:"g"},
+    {n:"Vinegar",             a:1,   u:"tbsp"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Salt",                a:2,   u:"g"},
+    {n:"Black pepper",        a:1,   u:"g"},
+    {n:"Cumin",               a:1,   u:"g"},
+  ]},
+  {id:"srec_cabbage_cuke_pea",name:"Cabbage Cucumber Pea Salad",servings:2, ings:[
+    {n:"Cabbage",             a:150, u:"g",   cm:"Shredded"},
+    {n:"Cucumber",            a:120, u:"g",   cm:"Raw"},
+    {n:"Green peas",          a:80,  u:"g"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Lemon",               a:20,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_tomato_cuke_onion",name:"Tomato Cucumber Onion Salad",servings:2,ings:[
+    {n:"Tomato",              a:240, u:"g",   cm:"Raw"},
+    {n:"Cucumber",            a:120, u:"g",   cm:"Raw"},
+    {n:"Onion",               a:40,  u:"g",   cm:"Raw"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_cuke_tomato_avocado",name:"Cucumber Tomato Avocado Salad",servings:2,ings:[
+    {n:"Cucumber",            a:120, u:"g",   cm:"Raw"},
+    {n:"Tomato",              a:120, u:"g",   cm:"Raw"},
+    {n:"Bell pepper",         a:120, u:"g",   cm:"Raw"},
+    {n:"Avocado",             a:100, u:"g",   cm:"Raw"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Lemon",               a:20,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+  ]},
+  /* SIMPLE EXTRAS */
+  {id:"srec_overnight_oats",  name:"Overnight Oats",            servings:1, ings:[
+    {n:"Oats",                a:80,  u:"g",   cm:"Overnight"},
+    {n:"Almond milk",         a:200, u:"ml"},
+    {n:"Honey",               a:21,  u:"g"},
+    {n:"Blueberry",           a:100, u:"g"},
+  ]},
+  {id:"srec_yogurt_bowl",     name:"Greek Yogurt Bowl",         servings:1, ings:[
+    {n:"Greek yogurt",        a:170, u:"g"},
+    {n:"Blueberry",           a:100, u:"g"},
+    {n:"Strawberry",          a:100, u:"g"},
+    {n:"Honey",               a:21,  u:"g"},
+  ]},
+  {id:"srec_avocado_toast",   name:"Avocado Toast",             servings:1, ings:[
+    {n:"Bread - whole wheat", a:56,  u:"g",   cm:"Toasted"},
+    {n:"Avocado",             a:100, u:"g",   cm:"Mashed"},
+    {n:"Lemon",               a:15,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+    {n:"Black pepper",        a:0.5, u:"g"},
+  ]},
+  {id:"srec_tuna_salad",      name:"Tuna Salad",                servings:1, ings:[
+    {n:"Tuna",                a:150, u:"g"},
+    {n:"Cucumber",            a:60,  u:"g",   cm:"Raw"},
+    {n:"Tomato",              a:60,  u:"g",   cm:"Raw"},
+    {n:"Onion",               a:20,  u:"g",   cm:"Raw"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Lemon",               a:15,  u:"g"},
+    {n:"Salt",                a:1,   u:"g"},
+  ]},
+  {id:"srec_chicken_veg",     name:"Grilled Chicken & Veg",     servings:1, ings:[
+    {n:"Chicken - breast",    a:150, u:"g",   cm:"Grilled"},
+    {n:"Broccoli",            a:150, u:"g",   cm:"Steamed"},
+    {n:"Bell pepper",         a:80,  u:"g",   cm:"Sautéed"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Garlic",              a:6,   u:"g"},
+    {n:"Salt",                a:2,   u:"g"},
+    {n:"Black pepper",        a:1,   u:"g"},
+  ]},
+  {id:"srec_salmon_lemon",    name:"Baked Salmon with Lemon",   servings:1, ings:[
+    {n:"Salmon",              a:150, u:"g",   cm:"Baked"},
+    {n:"Lemon",               a:30,  u:"g"},
+    {n:"Olive oil",           a:14,  u:"g"},
+    {n:"Garlic",              a:6,   u:"g"},
+    {n:"Salt",                a:2,   u:"g"},
+    {n:"Black pepper",        a:1,   u:"g"},
+  ]},
+];
+
+function buildSeedRecipes(foods) {
+  const byName = {};
+  foods.forEach(f => { byName[normK(f.name)] = f; });
+  return SEED_RECIPES_V1.map(rec => {
+    const ingredients = rec.ings.map(def => {
+      const food = byName[normK(def.n)];
+      if (!food) return null;
+      return { foodId:food.id, name:food.name, emoji:food.emoji, image:food.image,
+        nutrition:food.nutrition, amount:def.a, unit:def.u||food.nutrition.unit||"g", cookMethod:def.cm||"" };
+    }).filter(Boolean);
+    if (ingredients.length === 0) return null;
+    return { id:rec.id, name:rec.name, image:null, servings:rec.servings, ingredients, createdAt:Date.now() };
+  }).filter(Boolean);
+}
 
 /* ── WORKOUT DATA ── */
 const W_CATEGORIES = [
@@ -570,7 +776,7 @@ function resolveIng(ing, foodsMap) {
   if (!ing.foodId || !foodsMap) return ing;
   const live = foodsMap[ing.foodId];
   if (!live) return ing;
-  return { ...ing, name: live.name, emoji: live.emoji, image: live.image, nutrition: live.nutrition };
+  return { ...ing, name: live.name, emoji: live.emoji, image: live.image, nutrition: live.nutrition, cookMethods: live.cookMethods||[] };
 }
 
 function normK(s){return s.toLowerCase().replace(/[-_/]+/g," ").replace(/\s+/g," ").trim();}
@@ -587,7 +793,8 @@ function buildSeedFoods() {
   return SEED.map((s, i) => {
     const nk = s.n.toLowerCase().replace(/[A-Z]/g, c => c.toLowerCase());
     const nutrition = NDB[nk] || lookup(s.n) || emptyN();
-    return { id: "seed_" + i, name: s.n, tags: s.t, emoji: s.e || "🍽", image: null, nutrition: {...nutrition}, createdAt: now - i * 100 };
+    const cookMethods = COOK_METHODS_MAP[normK(s.n)] || [];
+    return { id: "seed_" + i, name: s.n, tags: s.t, emoji: s.e || "🍽", image: null, nutrition: {...nutrition}, cookMethods, createdAt: now - i * 100 };
   });
 }
 
@@ -783,6 +990,17 @@ function migrateStoredData() {
 
     localStorage.setItem("pantry_foods", JSON.stringify(foods));
     localStorage.setItem("pantry_migration", MIGRATION_VERSION);
+
+    // 3. Seed recipes once
+    if (localStorage.getItem("pantry_recipe_seed") !== "rsv1") {
+      const rawRec = localStorage.getItem("pantry_recipes");
+      let recipes = rawRec ? JSON.parse(rawRec) : [];
+      const seedRec = buildSeedRecipes(foods);
+      const existIds = new Set(recipes.map(r => r.id));
+      recipes = [...seedRec.filter(r => !existIds.has(r.id)), ...recipes];
+      localStorage.setItem("pantry_recipes", JSON.stringify(recipes));
+      localStorage.setItem("pantry_recipe_seed", "rsv1");
+    }
   } catch (e) { console.warn("[Pantry] Migration error:", e); }
 }
 
@@ -1543,6 +1761,8 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
   const [calcAmt,setCalcAmt]=useState("");
   const [calcUnit,setCalcUnit]=useState(food.nutrition&&food.nutrition.unit||"g");
   const [showScan,setShowScan]=useState(false);
+  const [cookMethods,setCookMethods]=useState(food.cookMethods||[]);
+  const [newMethod,setNewMethod]=useState("");
 
   useEffect(()=>{
     if(lastFoodId.current!==food.id){
@@ -1550,6 +1770,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
       setName(food.name);setEmoji(food.emoji||"?");setTags(food.tags||[]);
       setImage(food.image);setN({...food.nutrition});setAutofilled(false);
       setCalcAmt("");setCalcUnit(food.nutrition&&food.nutrition.unit||"g");
+      setCookMethods(food.cookMethods||[]);setNewMethod("");
     }
   },[food.id]);
 
@@ -1561,7 +1782,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
     if(found){setN(found);setAutofilled(true);}
   }
   function togTag(id){setTags(prev=>prev.includes(id)?prev.filter(t=>t!==id):[...prev,id]);}
-  function build(){return{id:food.id,name:name.trim(),emoji,tags,image,createdAt:food.createdAt||Date.now(),
+  function build(){return{id:food.id,name:name.trim(),emoji,tags,image,cookMethods,createdAt:food.createdAt||Date.now(),
     nutrition:{cal:Number(n.cal)||0,protein:Number(n.protein)||0,carbs:Number(n.carbs)||0,
       fat:Number(n.fat)||0,fiber:Number(n.fiber)||0,sugar:Number(n.sugar)||0,
       unit:n.unit||"g",portion:Number(n.portion)||100}};}
@@ -1686,6 +1907,26 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
             </>}
         </div>
       </div>
+    </div>
+
+    {/* Cooking methods */}
+    <div style={{marginBottom:14,paddingTop:14,borderTop:"1px solid "+T.line}}>
+      <Label>Cooking methods</Label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:editing?8:0}}>
+        {(editing?cookMethods:food.cookMethods||[]).map((m,i)=>(
+          <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 9px",borderRadius:7}}>
+            {m}
+            {editing&&<button onClick={()=>setCookMethods(p=>p.filter((_,j)=>j!==i))} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.sageD,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>}
+          </span>
+        ))}
+        {(editing?cookMethods:food.cookMethods||[]).length===0&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
+      </div>
+      {editing&&<div style={{display:"flex",gap:6}}>
+        <input value={newMethod} onChange={e=>setNewMethod(e.target.value)}
+          placeholder="e.g. Grilled, Boiled, Raw…" style={IS({fontSize:13,flex:1})}
+          onKeyDown={e=>{if(e.key==="Enter"&&newMethod.trim()){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}}/>
+        <Btn onClick={()=>{if(newMethod.trim()){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}} disabled={!newMethod.trim()}>Add</Btn>
+      </div>}
     </div>
 
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap"}}>
@@ -1884,20 +2125,31 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
     </div>
     {ings.length===0?<div style={{padding:"1.5rem 0",textAlign:"center",color:T.faint,fontSize:13}}>No ingredients yet.</div>
     :<div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
-      {ings.map((ing,idx)=>{const ri=resolveIng(ing,foodsMap);const n=scaleIng(ri);const u=ing.unit||ri.nutrition.unit||"g";return <div key={idx} style={{display:"flex",alignItems:"center",gap:10,border:"1px solid "+T.line,borderRadius:10,padding:8,background:T.raised}}>
-        {ri.image?<img src={ri.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
-          :<span style={{fontSize:22,flexShrink:0}}>{ri.emoji||"🍽"}</span>}
+      {ings.map((ing,idx)=>{const ri=resolveIng(ing,foodsMap);const n=scaleIng(ri);const u=ing.unit||ri.nutrition.unit||"g";return <div key={idx} style={{display:"flex",alignItems:"flex-start",gap:10,border:"1px solid "+T.line,borderRadius:10,padding:8,background:T.raised}}>
+        {ri.image?<img src={ri.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0,marginTop:2}}/>
+          :<span style={{fontSize:22,flexShrink:0,marginTop:2}}>{ri.emoji||"🍽"}</span>}
         <div style={{flex:1,minWidth:0}}>
-          <p style={{fontWeight:600,fontSize:13,margin:"0 0 2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ri.name}</p>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+            <p style={{fontWeight:600,fontSize:13,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ri.name}</p>
+            {ing.cookMethod&&<span style={{fontSize:10,fontWeight:700,color:T.tc,background:T.tcSoft,padding:"1px 6px",borderRadius:4,whiteSpace:"nowrap"}}>{ing.cookMethod}</span>}
+          </div>
           <p style={{fontSize:11,color:T.soft,margin:0,fontFamily:"monospace"}}>{rnd(n.cal)} cal · {rnd(n.protein,1)}g protein</p>
+          {editing&&(ri.cookMethods||[]).length>0&&<select value={ing.cookMethod||""} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,cookMethod:e.target.value}:x))} style={{...IS({padding:"3px 6px",fontSize:11,marginTop:4,width:"auto"}),color:ing.cookMethod?T.tc:T.faint}}>
+            <option value="">How cooked…</option>
+            {(ri.cookMethods||[]).map(m=><option key={m} value={m}>{m}</option>)}
+          </select>}
         </div>
-        {editing?<><input type="number" value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:Number(e.target.value)||0}:x))} style={IS({width:60,padding:"5px 6px",fontFamily:"monospace"})}/>
-          <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
-            <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
-            <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
-          </select>
-          <button onClick={()=>setIngs(prev=>prev.filter((_,i)=>i!==idx))} style={{width:28,height:28,borderRadius:7,border:"1px solid "+T.danger+"44",background:"transparent",color:T.danger,cursor:"pointer",fontSize:12}}>x</button></>
-        :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500}}>{ing.amount}{u}</span>}
+        {editing?<div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+          <div style={{display:"flex",gap:4}}>
+            <input type="number" value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:Number(e.target.value)||0}:x))} style={IS({width:60,padding:"5px 6px",fontFamily:"monospace"})}/>
+            <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
+              <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
+              <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
+            </select>
+          </div>
+          <button onClick={()=>setIngs(prev=>prev.filter((_,i)=>i!==idx))} style={{padding:"3px 8px",borderRadius:7,border:"1px solid "+T.danger+"44",background:"transparent",color:T.danger,cursor:"pointer",fontSize:11,fontFamily:"system-ui,sans-serif",fontWeight:600}}>Remove</button>
+        </div>
+        :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500,flexShrink:0}}>{ing.amount}{u}</span>}
       </div>;})}
     </div>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap"}}>
