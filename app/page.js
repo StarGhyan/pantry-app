@@ -564,6 +564,15 @@ function scaleIng(ing) {
   const n = ing.nutrition;
   return {cal:(n.cal||0)*f,protein:(n.protein||0)*f,carbs:(n.carbs||0)*f,fat:(n.fat||0)*f,fiber:(n.fiber||0)*f,sugar:(n.sugar||0)*f};
 }
+/* Merge live pantry data into a stored ingredient snapshot.
+   Falls back to stored values if the food was deleted or has no foodId. */
+function resolveIng(ing, foodsMap) {
+  if (!ing.foodId || !foodsMap) return ing;
+  const live = foodsMap[ing.foodId];
+  if (!live) return ing;
+  return { ...ing, name: live.name, emoji: live.emoji, image: live.image, nutrition: live.nutrition };
+}
+
 function normK(s){return s.toLowerCase().replace(/[-_/]+/g," ").replace(/\s+/g," ").trim();}
 function lookup(name){
   const k=normK(name); if(!k)return null;
@@ -797,6 +806,8 @@ export default function App() {
   const [selDay, setSelDay] = useState(DAYS[0]);
   const [toast, setToast] = useState(null);
   const [addToRecipeModal, setAddToRecipeModal] = useState(null);
+  const [stock, setStock] = useState(() => load("stock", []));
+  const [shopping, setShopping] = useState(() => load("shopping", []));
 
   /* ── WORKOUT STATE ── */
   const [exercises, setExercises] = useState(() => load("w_exercises", buildSeedExercises()));
@@ -817,6 +828,8 @@ export default function App() {
   useEffect(()=>save("cats",cats),[cats]);
   useEffect(()=>save("recipes",recipes),[recipes]);
   useEffect(()=>save("plan",plan),[plan]);
+  useEffect(()=>save("stock",stock),[stock]);
+  useEffect(()=>save("shopping",shopping),[shopping]);
   useEffect(()=>save("w_exercises",exercises),[exercises]);
   useEffect(()=>save("w_cats",wCats),[wCats]);
   useEffect(()=>save("w_routines",routines),[routines]);
@@ -824,8 +837,19 @@ export default function App() {
 
   function flash(msg){setToast(msg);setTimeout(()=>setToast(null),2000);}
 
+  /* ── STOCK CRUD ── */
+  function addStockItem(item){setStock(prev=>[{...item,id:uid("stk")},...prev]);}
+  function updateStockItem(id,updates){setStock(prev=>prev.map(s=>s.id===id?{...s,...updates}:s));}
+  function removeStockItem(id){setStock(prev=>prev.filter(s=>s.id!==id));}
+  /* ── SHOPPING CRUD ── */
+  function addShoppingItem(name,emoji="🛒"){setShopping(prev=>[...prev,{id:uid("shp"),name,emoji,done:false}]);}
+  function toggleShoppingItem(id){setShopping(prev=>prev.map(s=>s.id===id?{...s,done:!s.done}:s));}
+  function removeShoppingItem(id){setShopping(prev=>prev.filter(s=>s.id!==id));}
+  function clearDoneShopping(){setShopping(prev=>prev.filter(s=>!s.done));}
+
   /* ── NUTRITION CRUD ── */
   const catById = useMemo(()=>{const m={};cats.forEach(c=>{m[c.id]={...c,palette:pal(c)};});return m;},[cats]);
+  const foodsMap = useMemo(()=>{const m={};foods.forEach(f=>m[f.id]=f);return m;},[foods]);
 
   function handleMakeRecipe(selectedFoods, mode) {
     if (mode === "new") {
@@ -849,11 +873,12 @@ export default function App() {
   function saveRecipe(r){setRecipes(prev=>prev.some(x=>x.id===r.id)?prev.map(x=>x.id===r.id?r:x):[r,...prev]);}
   function delRecipe(id){setRecipes(prev=>prev.filter(r=>r.id!==id));setPlan(prev=>{const n={};for(const d of Object.keys(prev))n[d]=prev[d].filter(i=>i.recipeId!==id);return n;});setOpenRecipe(null);}
   function dupRecipe(id){const r=recipes.find(x=>x.id===id);if(!r)return;saveRecipe({...r,id:uid("rec"),name:r.name+" copy"});flash("Duplicated");}
+  function forkRecipe(r){setOpenRecipe({...r,id:uid("rec"),name:r.name+" (this time)"});setRecipeMode("edit");}
   function addToDay(day,recipeId,servings){ setPlan(prev=>({...prev,[day]:[...(prev[day]||[]),{iid:uid("inst"),recipeId,servings:Number(servings)||1}]})); setDayPicker(null);flash("Added to "+day); }
   function removeFromDay(day,iid){setPlan(prev=>({...prev,[day]:(prev[day]||[]).filter(i=>i.iid!==iid)}));}
   function dupToDay(day,iid,target){ const item=(plan[day]||[]).find(i=>i.iid===iid);if(!item)return; setPlan(prev=>({...prev,[target]:[...(prev[target]||[]),{iid:uid("inst"),recipeId:item.recipeId,servings:item.servings||1}]})); flash("Copied to "+target); }
   function updatePlanServings(day,iid,servings){ setPlan(prev=>({...prev,[day]:(prev[day]||[]).map(i=>i.iid===iid?{...i,servings:Number(servings)||0}:i)})); }
-  function totals(recipe){ let cal=0,protein=0,carbs=0,fat=0,fiber=0,sugar=0; for(const ing of recipe.ingredients){const n=scaleIng(ing);cal+=n.cal;protein+=n.protein;carbs+=n.carbs;fat+=n.fat;fiber+=n.fiber;sugar+=n.sugar;} return{cal:rnd(cal),protein:rnd(protein,1),carbs:rnd(carbs,1),fat:rnd(fat,1),fiber:rnd(fiber,1),sugar:rnd(sugar,1)}; }
+  function totals(recipe){ let cal=0,protein=0,carbs=0,fat=0,fiber=0,sugar=0; for(const ing of recipe.ingredients){const n=scaleIng(resolveIng(ing,foodsMap));cal+=n.cal;protein+=n.protein;carbs+=n.carbs;fat+=n.fat;fiber+=n.fiber;sugar+=n.sugar;} return{cal:rnd(cal),protein:rnd(protein,1),carbs:rnd(carbs,1),fat:rnd(fat,1),fiber:rnd(fiber,1),sugar:rnd(sugar,1)}; }
   function perServing(recipe){ const t=totals(recipe);const s=Number(recipe.servings)||1; return{cal:rnd(t.cal/s),protein:rnd(t.protein/s,1),carbs:rnd(t.carbs/s,1),fat:rnd(t.fat/s,1),fiber:rnd(t.fiber/s,1),sugar:rnd(t.sugar/s,1)}; }
 
   /* ── WORKOUT CRUD ── */
@@ -881,22 +906,27 @@ export default function App() {
   const activeTab = isNutrition ? tab : wTab;
   const setActiveTab = isNutrition ? setTab : setWTab;
   const tabItems = isNutrition
-    ? [{id:"foods",label:"Pantry",e:"🥦"},{id:"recipes",label:"Recipes",e:"👨‍🍳"},{id:"plan",label:"Plan",e:"📅"}]
+    ? [{id:"stock",label:"In Stock",e:"🏠"},{id:"foods",label:"Foods",e:"🥦"},{id:"recipes",label:"Recipes",e:"👨‍🍳"},{id:"plan",label:"Plan",e:"📅"}]
     : [{id:"exercises",label:"Exercises",e:"🏋️"},{id:"routines",label:"Routines",e:"📋"},{id:"plan",label:"Plan",e:"📅"}];
 
-  return <div style={{fontFamily:"system-ui,sans-serif",color:T.ink,display:"flex",minHeight:"100vh",background:T.bg}}>
-    {/* Left sidebar */}
-    <div style={{width:72,flexShrink:0,background:T.sageD,display:"flex",flexDirection:"column",alignItems:"center",paddingTop:16,gap:6}}>
+  return <div className="app-shell" style={{fontFamily:"system-ui,sans-serif",color:T.ink}}>
+    {/* Desktop sidebar */}
+    <div className="app-sidebar">
+      <div style={{padding:"18px 0 14px",width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:3,borderBottom:"1px solid rgba(255,255,255,0.1)",marginBottom:10}}>
+        <span style={{fontSize:24,lineHeight:1}}>🥦</span>
+        <span style={{fontSize:8,fontWeight:800,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Pantry</span>
+      </div>
       {sections.map(s=>{const a=section===s.id;return <button key={s.id} onClick={()=>setSection(s.id)} style={{
         width:56,padding:"10px 4px",borderRadius:12,border:"none",cursor:"pointer",
         background:a?"rgba(255,255,255,0.18)":"transparent",
         color:a?"#FBF7EE":"rgba(255,255,255,0.5)",
         display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"system-ui,sans-serif",
+        transition:"background 0.15s,color 0.15s",
       }}><span style={{fontSize:22}}>{s.emoji}</span><span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.03em"}}>{s.label}</span></button>;})}
     </div>
 
     {/* Main content */}
-    <div style={{flex:1,maxWidth:780,padding:"1rem 1rem 3rem",minWidth:0}}>
+    <div className="app-main">
       {/* Top nav tabs */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",alignItems:"baseline",gap:8}}>
@@ -914,6 +944,11 @@ export default function App() {
 
       {/* ═══ NUTRITION SECTION ═══ */}
       {isNutrition && <>
+        {tab==="stock"&&<StockTab stock={stock} shopping={shopping} foods={foods}
+          onAddStock={addStockItem} onUpdateStock={updateStockItem} onRemoveStock={removeStockItem}
+          onAddShopping={addShoppingItem} onToggleShopping={toggleShoppingItem}
+          onRemoveShopping={removeShoppingItem} onClearDone={clearDoneShopping}/>}
+
         {tab==="foods"&&<Pantry foods={foods} cats={cats} catById={catById}
           onOpen={f=>{setOpenFood(f);setFoodMode("view");}}
           onAdd={()=>{setOpenFood({id:uid("food"),name:"",emoji:"🍽",tags:[],image:null,nutrition:emptyN(),createdAt:Date.now()});setFoodMode("edit");}}
@@ -951,7 +986,8 @@ export default function App() {
           onClose={()=>setOpenRecipe(null)} onEdit={()=>setRecipeMode("edit")}
           onSave={r=>{saveRecipe(r);setOpenRecipe(r);setRecipeMode("view");flash("Saved");}}
           onSaveClose={r=>{saveRecipe(r);setOpenRecipe(null);flash("Saved");}}
-          onDelete={()=>{delRecipe(openRecipe.id);flash("Deleted");}}/>}
+          onDelete={()=>{delRecipe(openRecipe.id);flash("Deleted");}}
+          onFork={()=>{forkRecipe(openRecipe);flash("Forked — original untouched");}}/>}
 
         {dayPicker&&<DayPickerModal day={dayPicker} recipes={recipes}
           onPick={(rid,servings)=>addToDay(dayPicker,rid,servings)} onClose={()=>setDayPicker(null)}/>}
@@ -1001,7 +1037,29 @@ export default function App() {
           onPick={rid=>wAddToDay(wDayPicker,rid)} onClose={()=>setWDayPicker(null)}/>}
       </>}
 
-      {toast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:T.sageD,color:"#FBF7EE",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,zIndex:99}}>{toast}</div>}
+      {toast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:T.sageD,color:"#FBF7EE",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,zIndex:999,whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,0.2)"}}>{toast}</div>}
+    </div>
+
+    {/* Mobile bottom nav */}
+    <div className="app-bottom-nav">
+      {[
+        {id:"stock",     sec:"nutrition", label:"Pantry",    icon:"🏠"},
+        {id:"recipes",   sec:"nutrition", label:"Recipes",   icon:"👨‍🍳"},
+        {id:"plan",      sec:"nutrition", label:"Plan",      icon:"📅"},
+        {id:"exercises", sec:"workout",   label:"Exercises", icon:"🏋️"},
+        {id:"routines",  sec:"workout",   label:"Routines",  icon:"📋"},
+      ].map(item=>{
+        const isActive=section===item.sec&&(isNutrition?tab:wTab)===item.id;
+        return <button key={item.id} onClick={()=>{setSection(item.sec);if(item.sec==="nutrition")setTab(item.id);else setWTab(item.id);}} style={{
+          flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+          gap:2,padding:"8px 0",background:"transparent",border:"none",cursor:"pointer",
+          color:isActive?"#FBF7EE":"rgba(255,255,255,0.4)",fontFamily:"system-ui,sans-serif",
+          minHeight:54,transition:"color 0.15s",
+        }}>
+          <span style={{fontSize:isActive?22:19,lineHeight:1,transition:"font-size 0.15s"}}>{item.icon}</span>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.03em",textTransform:"uppercase"}}>{item.label}</span>
+        </button>;
+      })}
     </div>
   </div>;
 }
@@ -1107,13 +1165,13 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
         <Btn icon="+" onClick={onAdd}>Add food</Btn>
       </div>
 
-      <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 4, marginBottom: subcats.length ? 8 : 14, WebkitOverflowScrolling: "touch", alignItems: "center" }}>
+      <div className="cat-strip" style={{ marginBottom: subcats.length ? 8 : 14 }}>
         <CatTab active={activeCat === "all"} onClick={() => setActiveCat("all")} label="All" count={foods.length} />
         {cats.map(c => { const count = foods.filter(f => (f.tags || []).includes(c.id)).length; if (count === 0) return null; return <CatTab key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)} label={c.name} count={count} p={catById[c.id].palette} />; })}
       </div>
 
       {subcats.length > 0 && (
-        <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 6, marginBottom: 14, paddingLeft: 10, WebkitOverflowScrolling: "touch", borderLeft: "3px solid " + (catById[activeCat] ? catById[activeCat].palette.hex : T.lineS) }}>
+        <div className="scroll-x" style={{ display: "flex", gap: 5, paddingBottom: 6, marginBottom: 14, paddingLeft: 10, borderLeft: "3px solid " + (catById[activeCat] ? catById[activeCat].palette.hex : T.lineS) }}>
           <button onClick={() => setActiveSubcat(null)} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 16, border: "1px solid " + T.lineS, background: !activeSubcat ? T.ink : "transparent", color: !activeSubcat ? "#FBF7EE" : T.soft, cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>All {catById[activeCat] ? catById[activeCat].name : ""}</button>
           {subcats.map(sc => { const active = activeSubcat ? activeSubcat.id === sc.id : false; const p = catById[activeCat] ? catById[activeCat].palette : null; return (
             <button key={sc.id} onClick={() => setActiveSubcat(active ? null : sc)} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "5px 11px", borderRadius: 16, cursor: "pointer", fontFamily: "system-ui,sans-serif", border: active ? "1.5px solid " + (p ? p.hex : T.lineS) : "1px solid " + T.line, background: active ? (p ? p.soft : T.cream) : "transparent", color: active ? (p ? p.deep : T.ink) : T.soft, display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -1125,7 +1183,7 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
 
       {foods.length === 0 ? <Empty icon="apple" title="Your pantry is empty" body="Tap 'Add food' to get started." />
         : visible.length === 0 ? <Empty icon="search" title="No matches" body="Try a different search or category." />
-        : <div style={{ display: "grid", gridTemplateColumns: showNutrition ? "repeat(auto-fill,minmax(260px,1fr))" : "repeat(3,1fr)", gap: showNutrition ? 12 : 8 }}>
+        : <div className={showNutrition ? "food-grid-full" : "food-grid-compact"}>
           {visible.map(f => (
             <FoodCard key={f.id} food={f} catById={catById} showNutrition={showNutrition}
               selected={selectedIds.has(f.id)} contextOpen={contextCard === f.id} quickPickOpen={quickPick === f.id}
@@ -1355,34 +1413,57 @@ function CS({ l, v }) {
 
 /* SelectionTray — sticky bottom bar, drag up to expand */
 function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, onDeselect, onClear, onMakeRecipe, onAddToRecipe }) {
-  const totalCal = selections.reduce((s, sel) => {
+  const totals = selections.reduce((s, sel) => {
     const f = portionToG(sel.amount, sel.unit) / 100;
-    return s + (sel.food.nutrition.cal || 0) * f;
-  }, 0);
+    const n = sel.food.nutrition;
+    return {
+      cal:     s.cal     + (n.cal     || 0) * f,
+      protein: s.protein + (n.protein || 0) * f,
+      carbs:   s.carbs   + (n.carbs   || 0) * f,
+      fat:     s.fat     + (n.fat     || 0) * f,
+      fiber:   s.fiber   + (n.fiber   || 0) * f,
+    };
+  }, {cal:0,protein:0,carbs:0,fat:0,fiber:0});
+
+  const NutBadge = ({label, value, unit="g"}) => (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:38}}>
+      <span style={{fontSize:14,fontWeight:800,lineHeight:1,color:"#FBF7EE"}}>{rnd(value, unit==="g"?1:0)}</span>
+      <span style={{fontSize:8,fontWeight:700,opacity:0.55,textTransform:"uppercase",letterSpacing:"0.04em"}}>{label}</span>
+    </div>
+  );
 
   return (
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 25, fontFamily: "system-ui,sans-serif" }}>
       {/* Collapsed bar */}
-      <div style={{ background: T.sageD, color: "#FBF7EE", padding: "0 16px", boxShadow: "0 -4px 20px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: T.sageD, color: "#FBF7EE", paddingBottom: "env(safe-area-inset-bottom,0px)", boxShadow: "0 -4px 20px rgba(0,0,0,0.25)" }}>
         {/* Drag handle */}
-        <div onClick={onToggleExpand} style={{ textAlign: "center", padding: "8px 0 4px", cursor: "pointer" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.4)", display: "inline-block" }} />
+        <div onClick={onToggleExpand} style={{ textAlign: "center", padding: "8px 0 6px", cursor: "pointer" }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.35)", display: "inline-block" }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 2 }}>{selections.length} item{selections.length !== 1 ? "s" : ""} selected  |  {rnd(totalCal)} cal total</div>
-            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
-              {selections.map(sel => (
-                <span key={sel.food.id} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, background: "rgba(255,255,255,0.18)", borderRadius: 6, padding: "2px 7px", whiteSpace: "nowrap" }}>
-                  {sel.food.emoji || ""} {sel.food.name} · {sel.amount}{sel.unit}
-                </span>
-              ))}
-            </div>
+
+        {/* Nutrient strip */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px 8px" }}>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <NutBadge label="cal"  value={totals.cal} unit="kcal" />
+            <div style={{width:1,height:24,background:"rgba(255,255,255,0.15)"}}/>
+            <NutBadge label="prot" value={totals.protein} />
+            <NutBadge label="carb" value={totals.carbs}   />
+            <NutBadge label="fat"  value={totals.fat}     />
+            <NutBadge label="fiber" value={totals.fiber}  />
           </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={onMakeRecipe} style={{ padding: "7px 12px", borderRadius: 9, border: "1.5px solid #FBF7EE", background: "transparent", color: "#FBF7EE", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>Make recipe</button>
-            <button onClick={onAddToRecipe} style={{ padding: "7px 12px", borderRadius: 9, background: "#FBF7EE", color: T.sageD, fontWeight: 700, fontSize: 12, border: "none", cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>Add to recipe</button>
+          <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+            <button onClick={onMakeRecipe} style={{ padding:"7px 11px", borderRadius:9, border:"1.5px solid rgba(255,255,255,0.5)", background:"transparent", color:"#FBF7EE", fontWeight:600, fontSize:12, cursor:"pointer", fontFamily:"system-ui,sans-serif" }}>Make recipe</button>
+            <button onClick={onAddToRecipe} style={{ padding:"7px 11px", borderRadius:9, background:"#FBF7EE", color:T.sageD, fontWeight:700, fontSize:12, border:"none", cursor:"pointer", fontFamily:"system-ui,sans-serif" }}>Add to recipe</button>
           </div>
+        </div>
+
+        {/* Item chips */}
+        <div style={{ display:"flex", gap:5, overflowX:"auto", padding:"0 16px 10px", scrollbarWidth:"none" }}>
+          {selections.map(sel => (
+            <span key={sel.food.id} style={{ flexShrink:0, fontSize:11, fontWeight:600, background:"rgba(255,255,255,0.15)", borderRadius:6, padding:"3px 8px", whiteSpace:"nowrap", color:"#FBF7EE" }}>
+              {sel.food.emoji||""} {sel.food.name} · {sel.amount}{sel.unit}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -1446,6 +1527,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
   const [saving,setSaving]=useState(false);
   const [calcAmt,setCalcAmt]=useState("");
   const [calcUnit,setCalcUnit]=useState(food.nutrition&&food.nutrition.unit||"g");
+  const [showScan,setShowScan]=useState(false);
 
   useEffect(()=>{
     if(lastFoodId.current!==food.id){
@@ -1501,8 +1583,20 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
 
       <div style={{flex:1,minWidth:200}}>
         {editing
-          ?<input autoFocus value={name} onChange={e=>{setName(e.target.value);setAutofilled(false);}} onBlur={onBlur}
-              placeholder="Food name, e.g. Chicken - wings" style={IS({fontSize:18,fontWeight:700,padding:"8px 10px",marginBottom:12})}/>
+          ?<div style={{marginBottom:12}}>
+            <div style={{display:"flex",gap:6,marginBottom:6}}>
+              <input autoFocus value={name} onChange={e=>{setName(e.target.value);setAutofilled(false);}} onBlur={onBlur}
+                placeholder="Food name, e.g. Chicken - wings" style={IS({fontSize:18,fontWeight:700,padding:"8px 10px",flex:1})}/>
+              <button onClick={()=>setShowScan(true)} title="Scan barcode" style={{
+                padding:"8px 12px",borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,
+                cursor:"pointer",fontSize:18,flexShrink:0,color:T.ink,
+              }}>📷</button>
+            </div>
+            {showScan&&<BarcodeScanModal onResult={r=>{
+              setName(r.name||name);setEmoji(r.emoji||emoji);
+              setN({...r.nutrition});setAutofilled(true);setShowScan(false);
+            }} onClose={()=>setShowScan(false)}/>}
+          </div>
           :<h2 style={{margin:"0 0 10px",fontSize:20}}>{food.name}</h2>}
 
         <div style={{marginBottom:14}}>
@@ -1637,7 +1731,7 @@ function Recipes({recipes,totals,onNew,onOpen,onDelete,onDup}){
   return <div>
     <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}><Btn icon="+" onClick={onNew}>New recipe</Btn></div>
     {recipes.length===0?<Empty icon="chef" title="No recipes yet" body="Combine pantry foods into a saved recipe."/>
-    :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:14}}>
+    :<div className="card-grid">
       {recipes.map(r=>{const t=totals(r);return <div key={r.id}>
         <div onClick={()=>onOpen(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer"}}>
           <div style={{width:"100%",aspectRatio:"1.15",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1657,7 +1751,7 @@ function Recipes({recipes,totals,onNew,onOpen,onDelete,onDup}){
   </div>;
 }
 
-function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSave,onSaveClose,onDelete}){
+function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSave,onSaveClose,onDelete,onFork}){
   const editing=mode==="edit";
   const [name,setName]=useState(recipe.name);
   const [image,setImage]=useState(recipe.image);
@@ -1672,12 +1766,14 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
     setServings(recipe.servings||1);setViewServings(recipe.servings||1);
   },[recipe.id,mode]);
 
-  // Total for the whole recipe (all servings)
+  const foodsMap=useMemo(()=>{const m={};foods.forEach(f=>m[f.id]=f);return m;},[foods]);
+
+  // Total for the whole recipe (all servings) — uses live food data via resolveIng
   const tot=useMemo(()=>{
     let cal=0,protein=0,carbs=0,fat=0,fiber=0,sugar=0;
-    ings.forEach(ing=>{const n=scaleIng(ing);cal+=n.cal;protein+=n.protein;carbs+=n.carbs;fat+=n.fat;fiber+=n.fiber;sugar+=n.sugar;});
+    ings.forEach(ing=>{const n=scaleIng(resolveIng(ing,foodsMap));cal+=n.cal;protein+=n.protein;carbs+=n.carbs;fat+=n.fat;fiber+=n.fiber;sugar+=n.sugar;});
     return{cal,protein,carbs,fat,fiber,sugar};
-  },[ings]);
+  },[ings,foodsMap]);
 
   const baseServings=Number(servings)||1;
   // In view mode, show nutrition for `viewServings` servings (each serving = total/baseServings)
@@ -1741,11 +1837,12 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
     </div>
     {ings.length===0?<div style={{padding:"1.5rem 0",textAlign:"center",color:T.faint,fontSize:13}}>No ingredients yet.</div>
     :<div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
-      {ings.map((ing,idx)=>{const n=scaleIng(ing);const u=ing.unit||ing.nutrition.unit||"g";return <div key={idx} style={{display:"flex",alignItems:"center",gap:10,border:"1px solid "+T.line,borderRadius:10,padding:8,background:T.raised}}>
-        <span style={{fontSize:22,flexShrink:0}}>{ing.emoji||"🍽"}</span>
+      {ings.map((ing,idx)=>{const ri=resolveIng(ing,foodsMap);const n=scaleIng(ri);const u=ing.unit||ri.nutrition.unit||"g";return <div key={idx} style={{display:"flex",alignItems:"center",gap:10,border:"1px solid "+T.line,borderRadius:10,padding:8,background:T.raised}}>
+        {ri.image?<img src={ri.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
+          :<span style={{fontSize:22,flexShrink:0}}>{ri.emoji||"🍽"}</span>}
         <div style={{flex:1,minWidth:0}}>
-          <p style={{fontWeight:600,fontSize:13,margin:"0 0 2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ing.name}</p>
-          <p style={{fontSize:11,color:T.soft,margin:0,fontFamily:"monospace"}}>{rnd(n.cal)} cal</p>
+          <p style={{fontWeight:600,fontSize:13,margin:"0 0 2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ri.name}</p>
+          <p style={{fontSize:11,color:T.soft,margin:0,fontFamily:"monospace"}}>{rnd(n.cal)} cal · {rnd(n.protein,1)}g protein</p>
         </div>
         {editing?<><input type="number" value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:Number(e.target.value)||0}:x))} style={IS({width:60,padding:"5px 6px",fontFamily:"monospace"})}/>
           <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
@@ -1758,7 +1855,11 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
     </div>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap"}}>
       {!editing?<><DelBtn label="Delete recipe" onConfirm={onDelete}/>
-        <div style={{display:"flex",gap:8}}><Btn variant="ghost" onClick={onClose}>Close</Btn><Btn icon="e" onClick={onEdit}>Edit</Btn></div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {onFork&&<Btn variant="ghost" onClick={onFork}>Use this time</Btn>}
+          <Btn variant="ghost" onClick={onClose}>Close</Btn>
+          <Btn icon="e" onClick={onEdit}>Edit</Btn>
+        </div>
       </>:<>{recipe.name?<DelBtn label="Delete recipe" onConfirm={onDelete}/>:<span/>}
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <span style={{fontSize:11,color:T.faint}}>{canSave?"Tap outside to save":!name.trim()?"Add a name":"Need 1+ ingredients"}</span>
@@ -1836,7 +1937,7 @@ function Plan({plan,recipes,totals,perServing,selDay,setSelDay,onAdd,onRemove,on
     </div>
     {!recipes.length?<Empty icon="cal" title="No recipes yet" body="Save a recipe first, then plan your week."/>
     :!items.length?<Empty icon="plus" title={"Nothing planned for "+selDay} body="Tap 'Add to...' above."/>
-    :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:14}}>
+    :<div className="card-grid">
       {items.map(inst=>{const r=rById[inst.recipeId];if(!r)return null;const ps=perServing(r);const s=Number(inst.servings)||1;
         return <PlanCard key={inst.iid} recipe={r} servings={s} perServ={ps}
           onOpen={()=>onOpenRecipe(r)} onRemove={()=>onRemove(selDay,inst.iid)}
@@ -2004,7 +2105,7 @@ function WorkoutExercises({exercises,cats,catById,onOpen,onAdd,onManageCats,onMa
       <button onClick={onManageCats} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"7px 14px",border:"1px solid "+T.lineS,borderRadius:9,fontSize:13,fontWeight:600,background:T.raised,color:T.ink,cursor:"pointer",fontFamily:"system-ui,sans-serif"}}>Edit categories</button>
       <Btn icon="+" onClick={onAdd}>Add exercise</Btn>
     </div>
-    <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,marginBottom:subcats.length?8:14,WebkitOverflowScrolling:"touch",alignItems:"center"}}>
+    <div className="cat-strip" style={{marginBottom:subcats.length?8:14}}>
       <CatTab active={activeCat==="all"} onClick={()=>setActiveCat("all")} label="All" count={exercises.length}/>
       {cats.map(c=>{const count=exercises.filter(f=>(f.tags||[]).includes(c.id)).length;if(count===0)return null;return <CatTab key={c.id} active={activeCat===c.id} onClick={()=>setActiveCat(c.id)} label={c.name} count={count} p={catById[c.id].palette}/>;})}
     </div>
@@ -2014,7 +2115,7 @@ function WorkoutExercises({exercises,cats,catById,onOpen,onAdd,onManageCats,onMa
     </div>}
     {exercises.length===0?<Empty icon="ex" title="No exercises yet" body="Tap 'Add exercise' to start."/>
     :visible.length===0?<Empty icon="search" title="No matches" body="Try a different search or category."/>
-    :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10}}>
+    :<div className="card-grid">
       {visible.map(ex=><ExCard key={ex.id} ex={ex} catById={catById}
         selected={selectedIds.has(ex.id)} contextOpen={contextCard===ex.id} quickPickOpen={quickPick===ex.id}
         onView={()=>{closePopups();onOpen(ex);}} onContextToggle={e=>openContext(ex.id,e)}
@@ -2262,7 +2363,7 @@ function WRoutines({routines,onNew,onOpen,onDelete,onDup}){
   return <div>
     <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}><Btn icon="+" onClick={onNew}>New routine</Btn></div>
     {routines.length===0?<Empty icon="dumbbell" title="No routines yet" body="Group exercises into named routines."/>
-    :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:14}}>
+    :<div className="card-grid">
       {routines.map(r=>{const totalSets=r.exercises.reduce((s,ex)=>s+(ex.sets||[]).length,0);return <div key={r.id}>
         <div onClick={()=>onOpen(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer"}}>
           <div style={{width:"100%",aspectRatio:"1.15",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:30}}>🏋️</span></div>
@@ -2409,7 +2510,7 @@ function WPlan({plan,routines,selDay,setSelDay,onAdd,onRemove,onDup,onOpenRoutin
     </div>
     {!routines.length?<Empty icon="dumbbell" title="No routines yet" body="Create a routine first."/>
     :!items.length?<Empty icon="plus" title={"Nothing planned for "+selDay} body="Tap 'Add to...' above."/>
-    :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:14}}>
+    :<div className="card-grid">
       {items.map(inst=>{const r=rById[inst.routineId];if(!r)return null;
         return <div key={inst.iid} style={{position:"relative"}}>
           <div onClick={()=>onOpenRoutine(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer"}}>
@@ -2441,5 +2542,263 @@ function WDayPickerModal({day,routines,onPick,onClose}){
           <p style={{fontSize:11,color:T.soft,margin:0,fontFamily:"monospace"}}>{r.exercises.length} exercises</p></div>
       </div>)}
     </div>
+  </Modal>;
+}
+
+/* ══════════════════════════════════════════════════
+   LAYER 2 — Stock, Shopping, Barcode Scan
+══════════════════════════════════════════════════ */
+
+function StockTab({stock,shopping,foods,onAddStock,onUpdateStock,onRemoveStock,onAddShopping,onToggleShopping,onRemoveShopping,onClearDone}){
+  const [subTab,setSubTab]=useState("stock");
+  const [addModal,setAddModal]=useState(false);
+  const [editItem,setEditItem]=useState(null);
+  const [newShop,setNewShop]=useState("");
+
+  function daysUntil(dateStr){
+    if(!dateStr)return null;
+    return Math.ceil((new Date(dateStr)-new Date())/(1000*60*60*24));
+  }
+  const sorted=[...stock].sort((a,b)=>{
+    if(!a.expiresAt&&!b.expiresAt)return 0;
+    if(!a.expiresAt)return 1; if(!b.expiresAt)return -1;
+    return new Date(a.expiresAt)-new Date(b.expiresAt);
+  });
+  const expiring=sorted.filter(s=>{const d=daysUntil(s.expiresAt);return d!==null&&d<=3;});
+
+  return <div>
+    {/* Sub-tab toggle */}
+    <div style={{display:"flex",gap:3,background:T.cream,borderRadius:12,padding:4,marginBottom:16}}>
+      {[{id:"stock",label:"In Stock"},{id:"shopping",label:"🛒 Shopping"}].map(st=>{const a=subTab===st.id;return(
+        <button key={st.id} onClick={()=>setSubTab(st.id)} style={{flex:1,padding:"8px 10px",borderRadius:9,border:"none",fontWeight:600,fontSize:13,background:a?T.raised:"transparent",color:a?T.sageD:T.soft,cursor:"pointer",fontFamily:"system-ui,sans-serif"}}>{st.label}</button>
+      );})}
+    </div>
+
+    {subTab==="stock"&&<>
+      {expiring.length>0&&<div style={{background:"#FFF3CD",border:"1px solid #F59E0B",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
+        <p style={{fontWeight:700,fontSize:13,margin:"0 0 6px",color:"#92400E"}}>⚠️ Expiring soon</p>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {expiring.map(item=>{const d=daysUntil(item.expiresAt);return(
+            <span key={item.id} style={{fontSize:12,fontWeight:600,background:"rgba(245,158,11,0.15)",borderRadius:6,padding:"3px 8px",color:"#92400E"}}>
+              {item.emoji||"📦"} {item.name} · {d<=0?"expired":d===1?"tomorrow":`${d}d`}
+            </span>
+          );})}
+        </div>
+      </div>}
+
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+        <Btn icon="+" onClick={()=>setAddModal(true)}>Add item</Btn>
+      </div>
+
+      {stock.length===0
+        ?<Empty icon="🏠" title="Your pantry is empty" body="Track what you have at home with quantities and expiry dates."/>
+        :<div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {sorted.map(item=>{
+            const d=daysUntil(item.expiresAt);
+            const isExpired=d!==null&&d<=0;
+            const isExpiring=d!==null&&d<=3&&d>0;
+            const borderColor=isExpired?T.danger:isExpiring?"#F59E0B":T.line;
+            return <div key={item.id} style={{background:T.raised,border:"1px solid "+borderColor,borderRadius:12,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:26,flexShrink:0}}>{item.emoji||"📦"}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{fontWeight:700,fontSize:14,margin:"0 0 3px"}}>{item.name}</p>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  <span style={{fontSize:12,fontFamily:"monospace",color:T.soft,fontWeight:600}}>{item.quantity} {item.unit}</span>
+                  {item.location&&<span style={{fontSize:11,fontWeight:700,background:T.sage,borderRadius:4,padding:"1px 7px",color:T.sageD}}>{item.location==="fridge"?"❄️ Fridge":item.location==="freezer"?"🧊 Freezer":"🏪 Pantry"}</span>}
+                  {item.expiresAt&&<span style={{fontSize:11,fontWeight:600,color:isExpired?T.danger:isExpiring?"#92400E":T.faint}}>
+                    {isExpired?"Expired":d===0?"Expires today":d===1?"Expires tomorrow":`Exp. ${new Date(item.expiresAt+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`}
+                  </span>}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:4,flexShrink:0}}>
+                <button onClick={()=>setEditItem(item)} style={{width:32,height:32,borderRadius:8,border:"1px solid "+T.lineS,background:T.raised,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                <DelBtn icon onConfirm={()=>onRemoveStock(item.id)}/>
+              </div>
+            </div>;
+          })}
+        </div>}
+    </>}
+
+    {subTab==="shopping"&&<>
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <input placeholder="Add item to shopping list..." value={newShop} onChange={e=>setNewShop(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter"&&newShop.trim()){onAddShopping(newShop.trim(),"🛒");setNewShop("");}}}
+          style={IS({flex:1})}/>
+        <Btn onClick={()=>{if(newShop.trim()){onAddShopping(newShop.trim(),"🛒");setNewShop("");}}} icon="+">Add</Btn>
+      </div>
+      {shopping.some(s=>s.done)&&<button onClick={onClearDone} style={{fontSize:12,color:T.danger,background:"transparent",border:"none",cursor:"pointer",marginBottom:8,fontFamily:"system-ui,sans-serif",fontWeight:600}}>Clear done items</button>}
+      {shopping.length===0
+        ?<Empty icon="🛒" title="Shopping list is empty" body="Add items you need to buy."/>
+        :<div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {shopping.map(item=><div key={item.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:T.raised,border:"1px solid "+T.line,borderRadius:10,opacity:item.done?0.55:1}}>
+            <button onClick={()=>onToggleShopping(item.id)} style={{width:24,height:24,borderRadius:6,border:"2px solid "+(item.done?T.sageD:T.lineS),background:item.done?T.sageD:"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+              {item.done&&<span style={{color:"#FBF7EE",fontSize:13,fontWeight:800}}>✓</span>}
+            </button>
+            <span style={{flex:1,fontSize:14,fontWeight:600,textDecoration:item.done?"line-through":"none",color:item.done?T.faint:T.ink}}>{item.emoji} {item.name}</span>
+            <button onClick={()=>onRemoveShopping(item.id)} style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:T.faint,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          </div>)}
+        </div>}
+    </>}
+
+    {(addModal||editItem)&&<StockItemModal item={editItem} foods={foods}
+      onSave={data=>{editItem?onUpdateStock(editItem.id,data):onAddStock(data);setAddModal(false);setEditItem(null);}}
+      onClose={()=>{setAddModal(false);setEditItem(null);}}/>}
+  </div>;
+}
+
+function StockItemModal({item,foods,onSave,onClose}){
+  const [name,setName]=useState(item?.name||"");
+  const [emoji,setEmoji]=useState(item?.emoji||"📦");
+  const [foodId,setFoodId]=useState(item?.foodId||null);
+  const [qty,setQty]=useState(item?.quantity||1);
+  const [unit,setUnit]=useState(item?.unit||"unit");
+  const [location,setLocation]=useState(item?.location||"pantry");
+  const [expires,setExpires]=useState(item?.expiresAt||"");
+  const [q,setQ]=useState("");
+  const [pickMode,setPickMode]=useState(!item);
+  const filtered=foods.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())).slice(0,20);
+  function pick(food){setFoodId(food.id);setName(food.name);setEmoji(food.emoji||"📦");setPickMode(false);setQ("");}
+  return <Modal onClose={onClose} width={420}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+      <h3 style={{margin:0}}>{item?"Edit item":"Add to pantry"}</h3><CloseBtn onClick={onClose}/>
+    </div>
+    {pickMode?<>
+      <p style={{fontSize:12,color:T.soft,margin:"0 0 8px"}}>Pick from your food database:</p>
+      <input placeholder="Search foods..." value={q} onChange={e=>setQ(e.target.value)} style={IS({marginBottom:8})} autoFocus/>
+      <div style={{maxHeight:220,overflowY:"auto",display:"flex",flexDirection:"column",gap:5,marginBottom:12}}>
+        {filtered.map(f=><div key={f.id} onClick={()=>pick(f)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:9,cursor:"pointer",border:"1px solid "+T.line,background:T.raised}}>
+          <span style={{fontSize:20}}>{f.emoji||"🍽"}</span>
+          <span style={{flex:1,fontSize:13,fontWeight:600}}>{f.name}</span>
+        </div>)}
+      </div>
+      <button onClick={()=>setPickMode(false)} style={{fontSize:12,color:T.soft,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif"}}>Or enter manually →</button>
+    </>:<>
+      <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
+        <input value={emoji} onChange={e=>setEmoji(e.target.value||"📦")} maxLength={4} style={{width:48,fontSize:22,textAlign:"center",border:"1px solid "+T.lineS,borderRadius:8,padding:"4px",background:T.raised}}/>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Item name" style={IS({flex:1})} autoFocus={!item}/>
+      </div>
+      <button onClick={()=>setPickMode(true)} style={{fontSize:12,color:T.tc,background:"transparent",border:"none",cursor:"pointer",marginBottom:12,fontFamily:"system-ui,sans-serif",fontWeight:600}}>← Pick from foods database</button>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <div><Label>Quantity</Label><input type="number" min="0" step="0.1" value={qty} onChange={e=>setQty(e.target.value)} style={IS({})}/></div>
+        <div><Label>Unit</Label>
+          <select value={unit} onChange={e=>setUnit(e.target.value)} style={IS({})}>
+            <option value="unit">unit(s)</option><option value="g">g</option><option value="kg">kg</option>
+            <option value="lb">lb</option><option value="ml">ml</option><option value="L">L</option><option value="oz">oz</option>
+          </select>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <div><Label>Location</Label>
+          <select value={location} onChange={e=>setLocation(e.target.value)} style={IS({})}>
+            <option value="pantry">🏪 Pantry</option><option value="fridge">❄️ Fridge</option><option value="freezer">🧊 Freezer</option>
+          </select>
+        </div>
+        <div><Label>Expires</Label><input type="date" value={expires} onChange={e=>setExpires(e.target.value)} style={IS({})}/></div>
+      </div>
+      <Btn full disabled={!name.trim()} onClick={()=>onSave({name:name.trim(),emoji,foodId,quantity:Number(qty)||1,unit,location,expiresAt:expires||null})}>Save</Btn>
+    </>}
+  </Modal>;
+}
+
+function BarcodeScanModal({onResult,onClose}){
+  const videoRef=useRef(null);
+  const streamRef=useRef(null);
+  const animRef=useRef(null);
+  const detectorRef=useRef(null);
+  const [status,setStatus]=useState("starting"); // starting | scanning | found | manual | error
+  const [barcode,setBarcode]=useState("");
+  const [scanResult,setScanResult]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [notFound,setNotFound]=useState(false);
+
+  useEffect(()=>{startCamera();return()=>stopCamera();},[]);
+
+  async function startCamera(){
+    try{
+      if(!("BarcodeDetector" in window)){setStatus("manual");return;}
+      detectorRef.current=new window.BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128","code_39"]});
+      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+      streamRef.current=stream;
+      if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play();setStatus("scanning");scan();}
+    }catch{setStatus("manual");}
+  }
+  function stopCamera(){
+    if(animRef.current)cancelAnimationFrame(animRef.current);
+    streamRef.current?.getTracks().forEach(t=>t.stop());
+  }
+  async function scan(){
+    if(!detectorRef.current||!videoRef.current)return;
+    try{
+      const codes=await detectorRef.current.detect(videoRef.current);
+      if(codes.length>0){stopCamera();await lookup(codes[0].rawValue);return;}
+    }catch{}
+    animRef.current=requestAnimationFrame(scan);
+  }
+  async function lookup(code){
+    setStatus("found");setBarcode(code);setLoading(true);setScanResult(null);setNotFound(false);
+    try{
+      const res=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+      const data=await res.json();
+      if(data.status===1&&data.product){
+        const p=data.product;const nm=p.nutriments||{};
+        setScanResult({
+          name:p.product_name||p.product_name_en||"",emoji:"📦",
+          nutrition:{
+            cal:Math.round(nm["energy-kcal_100g"]||(nm["energy_100g"]||0)/4.184||0),
+            protein:rnd(nm["proteins_100g"]||0,1),carbs:rnd(nm["carbohydrates_100g"]||0,1),
+            fat:rnd(nm["fat_100g"]||0,1),fiber:rnd(nm["fiber_100g"]||0,1),sugar:rnd(nm["sugars_100g"]||0,1),
+            unit:"g",portion:100,
+          }
+        });
+      }else{setNotFound(true);}
+    }catch{setNotFound(true);}
+    setLoading(false);
+  }
+
+  return <Modal onClose={()=>{stopCamera();onClose();}} width={420} level={2}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+      <h3 style={{margin:0}}>📷 Scan barcode</h3><CloseBtn onClick={()=>{stopCamera();onClose();}}/>
+    </div>
+
+    {status==="starting"&&<div style={{height:180,display:"flex",alignItems:"center",justifyContent:"center",color:T.faint,fontSize:13}}>Starting camera…</div>}
+
+    {status==="scanning"&&<div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:14,background:"#000",aspectRatio:"4/3"}}>
+      <video ref={videoRef} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} playsInline muted/>
+      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+        <div style={{width:220,height:90,border:"3px solid rgba(255,255,255,0.9)",borderRadius:8,boxShadow:"0 0 0 9999px rgba(0,0,0,0.45)"}}/>
+      </div>
+      <p style={{position:"absolute",bottom:10,left:0,right:0,textAlign:"center",color:"rgba(255,255,255,0.9)",fontSize:12,fontWeight:600,margin:0}}>Point at the barcode</p>
+    </div>}
+
+    {(status==="manual"||status==="found")&&<>
+      <Label>Barcode number</Label>
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <input value={barcode} onChange={e=>setBarcode(e.target.value)} placeholder="e.g. 5000157024137"
+          style={IS({flex:1,fontFamily:"monospace",fontSize:15})} autoFocus={status==="manual"}/>
+        <Btn onClick={()=>lookup(barcode)} disabled={!barcode.trim()||loading}>Look up</Btn>
+      </div>
+    </>}
+
+    {loading&&<div style={{textAlign:"center",padding:"20px 0",color:T.faint,fontSize:13}}>Searching product database…</div>}
+
+    {scanResult&&<>
+      <div style={{background:T.cream,borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+        <p style={{fontWeight:700,fontSize:15,margin:"0 0 2px"}}>{scanResult.name||"Unknown product"}</p>
+        <p style={{fontSize:11,color:T.faint,margin:"0 0 10px",fontFamily:"monospace"}}>per 100g</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+          {[["Cal",scanResult.nutrition.cal,""],["Protein",scanResult.nutrition.protein,"g"],["Carbs",scanResult.nutrition.carbs,"g"],
+            ["Fat",scanResult.nutrition.fat,"g"],["Fiber",scanResult.nutrition.fiber,"g"],["Sugar",scanResult.nutrition.sugar,"g"]].map(([l,v,u])=>(
+            <div key={l} style={{background:T.raised,borderRadius:8,padding:"6px 8px"}}>
+              <p style={{fontSize:9,color:T.faint,margin:"0 0 2px",textTransform:"uppercase",fontWeight:700}}>{l}</p>
+              <p style={{fontFamily:"monospace",fontSize:14,fontWeight:700,margin:0,color:T.ink}}>{v}{u}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <Btn full onClick={()=>{stopCamera();onResult(scanResult);}}>Use this food</Btn>
+    </>}
+
+    {notFound&&<p style={{fontSize:13,color:T.danger,textAlign:"center",margin:"12px 0"}}>Product not found. Try entering the barcode number manually.</p>}
+    {status==="manual"&&!notFound&&!loading&&<p style={{fontSize:11,color:T.faint,textAlign:"center",margin:"8px 0"}}>Camera scanning not supported on this browser. Enter the barcode number above.</p>}
   </Modal>;
 }

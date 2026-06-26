@@ -62,3 +62,131 @@ img {
   background: var(--line-strong);
   border-radius: 4px;
 }
+
+/* ─── App shell layout ─── */
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+.app-sidebar {
+  width: 76px;
+  background: var(--sage-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 5;
+  overflow: hidden;
+}
+
+.app-main {
+  margin-left: 76px;
+  padding: 1.25rem 1.5rem 2.5rem;
+  min-width: 0;
+  width: calc(100% - 76px);
+  box-sizing: border-box;
+}
+
+.app-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .app-sidebar {
+    display: none;
+  }
+
+  .app-main {
+    margin-left: 0;
+    padding: 0.875rem 0.875rem 6rem;
+    max-width: 100%;
+  }
+
+  .app-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--sage-deep);
+    z-index: 5;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* ─── Responsive food / exercise grids ─── */
+.food-grid-full {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.food-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .food-grid-full {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .food-grid-compact {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+/* ─── Hide scrollbars on filter strips ─── */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Category chip strip ─── */
+/* Desktop: wrap so all chips are visible */
+.cat-strip {
+  display: flex;
+  gap: 5px;
+  padding-bottom: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Mobile: scroll horizontally instead of wrapping */
+@media (max-width: 640px) {
+  .cat-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .cat-strip::-webkit-scrollbar {
+    display: none;
+  }
+}
