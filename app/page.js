@@ -808,6 +808,8 @@ export default function App() {
   const [addToRecipeModal, setAddToRecipeModal] = useState(null);
   const [stock, setStock] = useState(() => load("stock", []));
   const [shopping, setShopping] = useState(() => load("shopping", []));
+  const [tasks, setTasks] = useState(() => load("tasks", []));
+  const [tTab, setTTab] = useState("all");
 
   /* ── WORKOUT STATE ── */
   const [exercises, setExercises] = useState(() => load("w_exercises", buildSeedExercises()));
@@ -830,6 +832,7 @@ export default function App() {
   useEffect(()=>save("plan",plan),[plan]);
   useEffect(()=>save("stock",stock),[stock]);
   useEffect(()=>save("shopping",shopping),[shopping]);
+  useEffect(()=>save("tasks",tasks),[tasks]);
   useEffect(()=>save("w_exercises",exercises),[exercises]);
   useEffect(()=>save("w_cats",wCats),[wCats]);
   useEffect(()=>save("w_routines",routines),[routines]);
@@ -846,6 +849,12 @@ export default function App() {
   function toggleShoppingItem(id){setShopping(prev=>prev.map(s=>s.id===id?{...s,done:!s.done}:s));}
   function removeShoppingItem(id){setShopping(prev=>prev.filter(s=>s.id!==id));}
   function clearDoneShopping(){setShopping(prev=>prev.filter(s=>!s.done));}
+
+  /* ── TASKS CRUD ── */
+  function addTask(t){setTasks(prev=>[{...t,id:uid("tsk"),createdAt:Date.now(),done:false},...prev]);}
+  function toggleTask(id){setTasks(prev=>prev.map(t=>t.id===id?{...t,done:!t.done,doneAt:!t.done?Date.now():null}:t));}
+  function deleteTask(id){setTasks(prev=>prev.filter(t=>t.id!==id));}
+  function updateTask(id,u){setTasks(prev=>prev.map(t=>t.id===id?{...t,...u}:t));}
 
   /* ── NUTRITION CRUD ── */
   const catById = useMemo(()=>{const m={};cats.forEach(c=>{m[c.id]={...c,palette:pal(c)};});return m;},[cats]);
@@ -900,14 +909,19 @@ export default function App() {
   /* ── SIDEBAR ── */
   const sections = [
     { id: "nutrition", label: "Nutrition", emoji: "🥗" },
-    { id: "workout", label: "Workout", emoji: "💪" },
+    { id: "workout",   label: "Workout",   emoji: "💪" },
+    { id: "tasks",     label: "Tasks",     emoji: "✅" },
   ];
   const isNutrition = section === "nutrition";
-  const activeTab = isNutrition ? tab : wTab;
-  const setActiveTab = isNutrition ? setTab : setWTab;
+  const isWorkout   = section === "workout";
+  const isTasks     = section === "tasks";
+  const activeTab    = isNutrition ? tab : isWorkout ? wTab : tTab;
+  const setActiveTab = isNutrition ? setTab : isWorkout ? setWTab : setTTab;
   const tabItems = isNutrition
     ? [{id:"stock",label:"In Stock",e:"🏠"},{id:"foods",label:"Foods",e:"🥦"},{id:"recipes",label:"Recipes",e:"👨‍🍳"},{id:"plan",label:"Plan",e:"📅"}]
-    : [{id:"exercises",label:"Exercises",e:"🏋️"},{id:"routines",label:"Routines",e:"📋"},{id:"plan",label:"Plan",e:"📅"}];
+    : isWorkout
+    ? [{id:"exercises",label:"Exercises",e:"🏋️"},{id:"routines",label:"Routines",e:"📋"},{id:"plan",label:"Plan",e:"📅"}]
+    : [{id:"all",label:"All",e:"📋"},{id:"work",label:"Work",e:"💼"},{id:"chores",label:"Chores",e:"🏠"},{id:"personal",label:"Personal",e:"🎯"},{id:"done",label:"Done",e:"✅"}];
 
   return <div className="app-shell" style={{fontFamily:"system-ui,sans-serif",color:T.ink}}>
     {/* Desktop sidebar */}
@@ -930,8 +944,8 @@ export default function App() {
       {/* Top nav tabs */}
       <div className="section-header">
         <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-          <span style={{fontSize:22,fontWeight:800,letterSpacing:"-0.02em"}}>{isNutrition?"Pantry":"Workout"}</span>
-          <span className="header-subtitle" style={{fontSize:11,color:T.faint,marginLeft:4,fontFamily:"monospace"}}>{isNutrition?"nutrition tracker":"exercise planner"}</span>
+          <span style={{fontSize:22,fontWeight:800,letterSpacing:"-0.02em"}}>{isNutrition?"Pantry":isWorkout?"Workout":"Tasks"}</span>
+          <span className="header-subtitle" style={{fontSize:11,color:T.faint,marginLeft:4,fontFamily:"monospace"}}>{isNutrition?"nutrition tracker":isWorkout?"exercise planner":"to-do & chores"}</span>
         </div>
         <div className="section-tabs-wrap">
           {tabItems.map(it=>{const a=activeTab===it.id;return <button key={it.id} onClick={()=>setActiveTab(it.id)} className="section-tab-btn" style={{
@@ -1035,13 +1049,18 @@ export default function App() {
           onPick={rid=>wAddToDay(wDayPicker,rid)} onClose={()=>setWDayPicker(null)}/>}
       </>}
 
+      {/* ═══ TASKS SECTION ═══ */}
+      {isTasks&&<TasksSection tasks={tasks} activeTab={tTab}
+        onAdd={addTask} onToggle={toggleTask} onDelete={deleteTask} onUpdate={updateTask}/>}
+
       {toast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:T.sageD,color:"#FBF7EE",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,zIndex:999,whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,0.2)"}}>{toast}</div>}
     </div>
 
-    {/* Mobile bottom nav — mirrors the desktop sidebar: Nutrition | Workout */}
+    {/* Mobile bottom nav */}
     <div className="app-bottom-nav">
       {[
         {sec:"nutrition", label:"Nutrition", icon:"🥗"},
+        {sec:"tasks",     label:"Tasks",     icon:"✅"},
         {sec:"workout",   label:"Workout",   icon:"💪"},
       ].map(item=>{
         const isActive=section===item.sec;
@@ -1724,18 +1743,50 @@ function CatModal({cats,catById,onClose,onAdd,onDelete,onColor,onRename}){
 }
 
 function Recipes({recipes,totals,onNew,onOpen,onDelete,onDup}){
+  const [sortBy,setSortBy]=useState("recent");
+  const SORTS=[
+    {id:"recent",  label:"Recent"},
+    {id:"protein", label:"↑ Protein"},
+    {id:"fiber",   label:"↑ Fiber"},
+    {id:"cal_hi",  label:"↑ Calories"},
+    {id:"cal_lo",  label:"↓ Calories"},
+  ];
+  const sorted=useMemo(()=>[...recipes].sort((a,b)=>{
+    if(sortBy==="recent") return (b.createdAt||0)-(a.createdAt||0);
+    const ta=totals(a),tb=totals(b);
+    if(sortBy==="protein") return tb.protein-ta.protein;
+    if(sortBy==="fiber")   return tb.fiber-ta.fiber;
+    if(sortBy==="cal_hi")  return tb.cal-ta.cal;
+    if(sortBy==="cal_lo")  return ta.cal-tb.cal;
+    return 0;
+  }),[recipes,sortBy,totals]);
+
   return <div>
-    <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}><Btn icon="+" onClick={onNew}>New recipe</Btn></div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+      <div className="scroll-x" style={{display:"flex",gap:5,flex:1}}>
+        {SORTS.map(s=>{const a=sortBy===s.id;return <button key={s.id} onClick={()=>setSortBy(s.id)} style={{
+          flexShrink:0,fontSize:12,fontWeight:600,padding:"5px 11px",borderRadius:16,cursor:"pointer",
+          fontFamily:"system-ui,sans-serif",
+          border:a?"1.5px solid "+T.sageD:"1px solid "+T.line,
+          background:a?T.sage:"transparent",color:a?T.sageD:T.soft,
+        }}>{s.label}</button>;})}
+      </div>
+      <Btn icon="+" onClick={onNew}>New recipe</Btn>
+    </div>
     {recipes.length===0?<Empty icon="chef" title="No recipes yet" body="Combine pantry foods into a saved recipe."/>
     :<div className="card-grid">
-      {recipes.map(r=>{const t=totals(r);return <div key={r.id}>
-        <div onClick={()=>onOpen(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer"}}>
-          <div style={{width:"100%",aspectRatio:"1.15",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            {r.image?<img src={r.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:30}}>recipe</span>}
+      {sorted.map(r=>{const t=totals(r);return <div key={r.id} style={{display:"flex",flexDirection:"column",height:"100%"}}>
+        <div onClick={()=>onOpen(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer",flex:1,display:"flex",flexDirection:"column"}}>
+          <div style={{width:"100%",aspectRatio:"1.15",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {r.image?<img src={r.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:30}}>🍳</span>}
           </div>
-          <div style={{padding:"8px 10px"}}>
-            <p style={{fontWeight:700,fontSize:13.5,margin:"0 0 3px"}}>{r.name}</p>
-            <p style={{fontSize:11.5,fontFamily:"monospace",color:T.soft,margin:0}}>{t.cal} cal · {r.servings||1} serving{(r.servings||1)!==1?"s":""} · {r.ingredients.length} items</p>
+          <div style={{padding:"8px 10px",flex:1}}>
+            <p style={{fontWeight:700,fontSize:13.5,margin:"0 0 3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.name}</p>
+            <p style={{fontSize:11,fontFamily:"monospace",color:T.soft,margin:"0 0 4px"}}>{t.cal} cal · {r.servings||1} serving{(r.servings||1)!==1?"s":""}</p>
+            <div style={{display:"flex",gap:6}}>
+              <span style={{fontSize:10,fontWeight:700,color:"#4A7A8C",background:"#4A7A8C18",borderRadius:4,padding:"1px 5px"}}>{t.protein}g prot</span>
+              <span style={{fontSize:10,fontWeight:700,color:"#6E8C4A",background:"#6E8C4A18",borderRadius:4,padding:"1px 5px"}}>{t.fiber}g fiber</span>
+            </div>
           </div>
         </div>
         <div style={{display:"flex",gap:4,marginTop:6,justifyContent:"flex-end"}}>
@@ -2092,9 +2143,11 @@ function WorkoutExercises({exercises,cats,catById,onOpen,onAdd,onManageCats,onMa
 
   const hasTray=selectedList.length>0;
   const anyPopup=contextCard!==null||quickPick!==null;
+  const selectedTags=useMemo(()=>[...new Set(selectedList.flatMap(s=>s.ex.tags||[]))],[selectedList]);
 
   return <div>
     {anyPopup&&<div onClick={closePopups} style={{position:"fixed",inset:0,zIndex:15,background:"transparent"}}/>}
+    {hasTray&&<BodyMap selectedTags={selectedTags}/>}
     <input placeholder="Search exercises..." value={q} onChange={e=>setQ(e.target.value)} style={IS({marginBottom:10})}/>
     <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
       <div style={{flex:1}}/>
@@ -2797,4 +2850,213 @@ function BarcodeScanModal({onResult,onClose}){
     {notFound&&<p style={{fontSize:13,color:T.danger,textAlign:"center",margin:"12px 0"}}>Product not found. Try entering the barcode number manually.</p>}
     {status==="manual"&&!notFound&&!loading&&<p style={{fontSize:11,color:T.faint,textAlign:"center",margin:"8px 0"}}>Camera scanning not supported on this browser. Enter the barcode number above.</p>}
   </Modal>;
+}
+
+/* ══════════════════════════════════════════════════
+   LAYER 3 — Tasks, Recipe filters, Body Map
+══════════════════════════════════════════════════ */
+
+const TASK_CATS = {
+  work:     {label:"Work",     emoji:"💼", hex:"#4A7A8C", soft:"#DCEAEE"},
+  chores:   {label:"Chores",   emoji:"🧹", hex:"#6E8C4A", soft:"#E7EBDA"},
+  personal: {label:"Personal", emoji:"🎯", hex:"#9A5A7A", soft:"#EFDFE8"},
+};
+
+function TasksSection({tasks,activeTab,onAdd,onToggle,onDelete,onUpdate}){
+  const [showAdd,setShowAdd]=useState(false);
+  const [editTask,setEditTask]=useState(null);
+
+  function daysUntil(d){
+    if(!d)return null;
+    return Math.ceil((new Date(d+"T12:00:00")-new Date())/(864e5));
+  }
+
+  const visible=useMemo(()=>{
+    let arr=tasks.filter(t=>{
+      if(activeTab==="done") return t.done;
+      if(t.done) return false;
+      if(activeTab!=="all") return t.category===activeTab;
+      return true;
+    });
+    return arr.sort((a,b)=>{
+      if(a.done!==b.done) return a.done?1:-1;
+      const da=a.dueDate?new Date(a.dueDate+"T12:00:00"):null;
+      const db=b.dueDate?new Date(b.dueDate+"T12:00:00"):null;
+      if(da&&db) return da-db;
+      if(da) return -1; if(db) return 1;
+      return b.createdAt-a.createdAt;
+    });
+  },[tasks,activeTab]);
+
+  const pending=tasks.filter(t=>!t.done).length;
+  const overdue=tasks.filter(t=>!t.done&&t.dueDate&&daysUntil(t.dueDate)<0).length;
+
+  return <div>
+    {/* Summary chips */}
+    {pending>0&&<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+      <span style={{fontSize:12,fontWeight:600,padding:"4px 10px",borderRadius:8,background:T.cream,color:T.soft}}>{pending} pending</span>
+      {overdue>0&&<span style={{fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:8,background:T.danger+"18",color:T.danger}}>⚠️ {overdue} overdue</span>}
+    </div>}
+
+    <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+      <Btn icon="+" onClick={()=>setShowAdd(true)}>Add task</Btn>
+    </div>
+
+    {visible.length===0
+      ?<Empty icon={activeTab==="done"?"✅":"📋"}
+          title={activeTab==="done"?"No completed tasks yet":"Nothing here"}
+          body={activeTab==="done"?"Tasks you complete show up here.":"Tap '+ Add task' to get started."}/>
+      :<div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {visible.map(task=>{
+          const d=daysUntil(task.dueDate);
+          const isOverdue=d!==null&&d<0;
+          const isToday=d===0;
+          const isSoon=d!==null&&d>0&&d<=2;
+          const cat=TASK_CATS[task.category]||TASK_CATS.personal;
+          return <div key={task.id} style={{
+            background:T.raised,border:"1px solid "+(isOverdue?T.danger:T.line),
+            borderLeft:"4px solid "+cat.hex,borderRadius:12,padding:"12px 14px",
+            display:"flex",alignItems:"flex-start",gap:12,
+            opacity:task.done?0.55:1,transition:"opacity 0.2s",
+          }}>
+            <button onClick={()=>onToggle(task.id)} style={{
+              width:22,height:22,borderRadius:6,flexShrink:0,marginTop:1,
+              border:"2px solid "+(task.done?T.sageD:T.lineS),
+              background:task.done?T.sageD:"transparent",
+              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,
+            }}>
+              {task.done&&<span style={{color:"#FBF7EE",fontSize:12,lineHeight:1}}>✓</span>}
+            </button>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{fontWeight:600,fontSize:14,margin:"0 0 5px",textDecoration:task.done?"line-through":"none",color:task.done?T.faint:T.ink,wordBreak:"break-word"}}>{task.title}</p>
+              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:4,background:cat.soft,color:cat.hex}}>{cat.emoji} {cat.label}</span>
+                {task.dueDate&&<span style={{fontSize:11,fontWeight:isOverdue||isToday?700:400,color:isOverdue?T.danger:isToday?"#C4683D":isSoon?"#8C7A3D":T.faint}}>
+                  {isOverdue?`Overdue ${Math.abs(d)}d`:isToday?"Due today":isSoon?`Due in ${d}d`:`Due ${new Date(task.dueDate+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`}
+                </span>}
+              </div>
+              {task.notes&&<p style={{fontSize:12,color:T.soft,margin:"5px 0 0",lineHeight:1.4}}>{task.notes}</p>}
+            </div>
+            <div style={{display:"flex",gap:4,flexShrink:0}}>
+              <button onClick={()=>{setEditTask(task);}} style={{width:28,height:28,borderRadius:7,border:"1px solid "+T.lineS,background:T.raised,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+              <DelBtn icon onConfirm={()=>onDelete(task.id)}/>
+            </div>
+          </div>;
+        })}
+      </div>}
+
+    {(showAdd||editTask)&&<AddTaskModal task={editTask}
+      onSave={data=>{editTask?onUpdate(editTask.id,data):onAdd(data);setShowAdd(false);setEditTask(null);}}
+      onClose={()=>{setShowAdd(false);setEditTask(null);}}/>}
+  </div>;
+}
+
+function AddTaskModal({task,onSave,onClose}){
+  const [title,setTitle]=useState(task?.title||"");
+  const [category,setCategory]=useState(task?.category||"personal");
+  const [dueDate,setDueDate]=useState(task?.dueDate||"");
+  const [notes,setNotes]=useState(task?.notes||"");
+  return <Modal onClose={onClose} width={440}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+      <h3 style={{margin:0}}>{task?"Edit task":"Add task"}</h3><CloseBtn onClick={onClose}/>
+    </div>
+    <input autoFocus value={title} onChange={e=>setTitle(e.target.value)}
+      placeholder="What needs to be done?" style={IS({marginBottom:12,fontSize:16,fontWeight:600})}
+      onKeyDown={e=>{if(e.key==="Enter"&&title.trim()){onSave({title:title.trim(),category,dueDate:dueDate||null,notes:notes.trim()});}}}/>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+      <div><Label>Category</Label>
+        <select value={category} onChange={e=>setCategory(e.target.value)} style={IS({})}>
+          <option value="work">💼 Work</option>
+          <option value="chores">🧹 Chores</option>
+          <option value="personal">🎯 Personal</option>
+        </select>
+      </div>
+      <div><Label>Due date</Label>
+        <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} style={IS({})}/>
+      </div>
+    </div>
+    <div style={{marginBottom:16}}>
+      <Label>Notes (optional)</Label>
+      <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add a note…"
+        style={{...IS({}),height:72,resize:"vertical",lineHeight:1.5}}/>
+    </div>
+    <Btn full disabled={!title.trim()} onClick={()=>onSave({title:title.trim(),category,dueDate:dueDate||null,notes:notes.trim()})}>
+      {task?"Save changes":"Add task"}
+    </Btn>
+  </Modal>;
+}
+
+/* ── Body Map ── simple SVG muscle diagram shown in Exercises when items are selected */
+const MUSCLE_MAP = {
+  front: [
+    {id:"chest",    label:"Chest",      tags:["push","chest","chest_u"],        cx:100,cy:102, rx:32,ry:24},
+    {id:"lshoulder",label:"L.Shoulder", tags:["push","shoulders_p","upper"],    cx:60, cy:82,  rx:16,ry:16},
+    {id:"rshoulder",label:"R.Shoulder", tags:["push","shoulders_p","upper"],    cx:140,cy:82,  rx:16,ry:16},
+    {id:"lbicep",   label:"L.Bicep",    tags:["pull","biceps"],                 cx:44, cy:120, rx:11,ry:22},
+    {id:"rbicep",   label:"R.Bicep",    tags:["pull","biceps"],                 cx:156,cy:120, rx:11,ry:22},
+    {id:"lforearm", label:"L.Forearm",  tags:["pull","forearms"],               cx:40, cy:162, rx:9, ry:20},
+    {id:"rforearm", label:"R.Forearm",  tags:["pull","forearms"],               cx:160,cy:162, rx:9, ry:20},
+    {id:"abs",      label:"Abs",        tags:["core","abs"],                    cx:100,cy:148, rx:26,ry:30},
+    {id:"obliques", label:"Obliques",   tags:["core","obliques"],               cx:100,cy:148, rx:38,ry:30},
+    {id:"lquad",    label:"L.Quad",     tags:["lower","quads"],                 cx:82, cy:218, rx:20,ry:38},
+    {id:"rquad",    label:"R.Quad",     tags:["lower","quads"],                 cx:118,cy:218, rx:20,ry:38},
+    {id:"lcalf",    label:"L.Calf",     tags:["lower","calves"],                cx:80, cy:286, rx:14,ry:28},
+    {id:"rcalf",    label:"R.Calf",     tags:["lower","calves"],                cx:120,cy:286, rx:14,ry:28},
+  ],
+  back: [
+    {id:"lats",     label:"Back/Lats",  tags:["pull","back"],                   cx:100,cy:105, rx:36,ry:28},
+    {id:"lshouldB", label:"L.Shoulder", tags:["push","shoulders_p","upper"],    cx:60, cy:82,  rx:16,ry:16},
+    {id:"rshouldB", label:"R.Shoulder", tags:["push","shoulders_p","upper"],    cx:140,cy:82,  rx:16,ry:16},
+    {id:"ltricep",  label:"L.Tricep",   tags:["push","triceps"],                cx:44, cy:120, rx:11,ry:22},
+    {id:"rtricep",  label:"R.Tricep",   tags:["push","triceps"],                cx:156,cy:120, rx:11,ry:22},
+    {id:"lforearmB",label:"L.Forearm",  tags:["pull","forearms"],               cx:40, cy:162, rx:9, ry:20},
+    {id:"rforearmB",label:"R.Forearm",  tags:["pull","forearms"],               cx:160,cy:162, rx:9, ry:20},
+    {id:"glutes",   label:"Glutes",     tags:["lower","glutes"],                cx:100,cy:178, rx:32,ry:22},
+    {id:"lhamstring",label:"L.Hamstring",tags:["lower","hamstrings"],           cx:82, cy:220, rx:20,ry:36},
+    {id:"rhamstring",label:"R.Hamstring",tags:["lower","hamstrings"],           cx:118,cy:220, rx:20,ry:36},
+    {id:"lcalfB",   label:"L.Calf",     tags:["lower","calves"],                cx:80, cy:284, rx:14,ry:28},
+    {id:"rcalfB",   label:"R.Calf",     tags:["lower","calves"],                cx:120,cy:284, rx:14,ry:28},
+  ],
+};
+
+function BodyMap({selectedTags}){
+  const [view,setView]=useState("front");
+  const muscles=MUSCLE_MAP[view];
+  const activeTags=new Set(selectedTags);
+
+  function isActive(muscle){
+    return muscle.tags.some(t=>activeTags.has(t));
+  }
+
+  return <div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,padding:"12px 16px",marginBottom:16}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+      <span style={{fontSize:12,fontWeight:700,color:T.soft,textTransform:"uppercase",letterSpacing:"0.04em"}}>Muscles worked</span>
+      <div style={{display:"flex",gap:4}}>
+        {["front","back"].map(v=><button key={v} onClick={()=>setView(v)} style={{
+          padding:"4px 10px",borderRadius:7,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",
+          background:view===v?T.sageD:"transparent",color:view===v?"#FBF7EE":T.soft,fontFamily:"system-ui,sans-serif",
+        }}>{v==="front"?"Front":"Back"}</button>)}
+      </div>
+    </div>
+    <svg viewBox="0 0 200 320" style={{width:"100%",maxWidth:220,display:"block",margin:"0 auto"}}>
+      {/* body silhouette */}
+      <ellipse cx="100" cy="30" rx="22" ry="24" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="88" y="52" width="24" height="14" rx="5" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="62" y="64" width="76" height="96" rx="12" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="36" y="70" width="26" height="96" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="138" y="70" width="26" height="96" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="64" y="158" width="72" height="30" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="64" y="184" width="32" height="80" rx="12" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="104" y="184" width="32" height="80" rx="12" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="66" y="260" width="28" height="58" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      <rect x="106" y="260" width="28" height="58" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
+      {/* muscle overlays */}
+      {muscles.map(m=>{
+        const active=isActive(m);
+        return active?<ellipse key={m.id} cx={m.cx} cy={m.cy} rx={m.rx} ry={m.ry}
+          fill={T.tc} fillOpacity="0.55" stroke={T.tc} strokeWidth="1.5" strokeOpacity="0.8"/>:null;
+      })}
+    </svg>
+    {selectedTags.length===0&&<p style={{textAlign:"center",fontSize:11,color:T.faint,margin:"6px 0 0"}}>Select exercises to see muscles highlighted</p>}
+  </div>;
 }
