@@ -325,43 +325,218 @@ const NDB = {
 
 /* Default cooking methods per food (keyed by normalised name) */
 const COOK_METHODS_MAP = {
-  "egg":                ["Raw","Scrambled","Boiled","Fried","Poached","Omelette"],
-  "chicken - breast":   ["Raw","Grilled","Baked","Sautéed","Boiled","Pan-fried"],
-  "chicken - thigh":    ["Raw","Grilled","Baked","Sautéed","Braised"],
-  "chicken - wings":    ["Raw","Baked","Fried","Grilled"],
-  "chicken - drumstick":["Raw","Baked","Grilled","Fried"],
-  "whole chicken":      ["Raw","Roasted","Baked"],
-  "beef - ground":      ["Raw","Pan-fried","Baked","Grilled"],
-  "beef - steak":       ["Raw","Grilled","Pan-fried","Roasted"],
-  "salmon":             ["Raw","Grilled","Baked","Pan-fried","Poached"],
-  "tuna":               ["Raw","Baked","Pan-fried","Grilled"],
-  "shrimp":             ["Raw","Grilled","Sautéed","Boiled","Fried"],
-  "tomato":             ["Raw","Roasted","Sautéed"],
-  "bell pepper":        ["Raw","Roasted","Sautéed","Grilled"],
-  "mushroom":           ["Raw","Sautéed","Roasted","Grilled"],
-  "broccoli":           ["Raw","Steamed","Roasted","Sautéed"],
-  "spinach":            ["Raw","Sautéed","Steamed"],
-  "zucchini":           ["Raw","Sautéed","Grilled","Roasted"],
-  "sweet potato":       ["Raw","Baked","Boiled","Roasted","Mashed"],
-  "yellow potato":      ["Raw","Boiled","Baked","Roasted","Mashed"],
-  "cauliflower":        ["Raw","Roasted","Steamed","Sautéed","Mashed"],
-  "carrot":             ["Raw","Cooked","Roasted","Steamed"],
-  "onion":              ["Raw","Caramelised","Sautéed","Roasted"],
-  "garlic":             ["Raw","Roasted","Minced","Sautéed"],
-  "green beans":        ["Raw","Steamed","Sautéed","Blanched"],
-  "green beans - canned":["Drained","Sautéed","Steamed"],
-  "green peas":         ["Raw","Boiled","Steamed","Sautéed"],
-  "cabbage":            ["Raw","Shredded","Sautéed","Braised","Pickled"],
-  "kale":               ["Raw","Sautéed","Baked","Steamed"],
-  "oats":               ["Raw","Cooked","Overnight"],
-  "white rice":         ["Cooked"],
-  "brown rice":         ["Cooked"],
-  "pasta":              ["Cooked"],
-  "pasta - dry":        ["Cooked"],
-  "quinoa":             ["Cooked"],
-  "avocado":            ["Raw","Mashed","Sliced"],
-  "bread":              ["Plain","Toasted"],
-  "bread - whole wheat":["Plain","Toasted"],
+  /* EGGS */
+  "egg":                   ["Raw","Scrambled","Boiled","Fried","Poached","Omelette","Baked"],
+  /* MEAT */
+  "chicken - breast":      ["Raw","Grilled","Baked","Sautéed","Boiled","Pan-fried"],
+  "chicken - thigh":       ["Raw","Grilled","Baked","Sautéed","Braised"],
+  "chicken - wings":       ["Raw","Baked","Fried","Grilled"],
+  "chicken - drumstick":   ["Raw","Baked","Grilled","Fried"],
+  "whole chicken":         ["Raw","Roasted","Baked"],
+  "beef - ground":         ["Raw","Pan-fried","Baked","Grilled"],
+  "beef - steak":          ["Raw","Grilled","Pan-fried","Roasted"],
+  "beef - ribs":           ["Raw","Slow-cooked","Grilled","Baked"],
+  "pork - chop":           ["Raw","Grilled","Pan-fried","Baked"],
+  "pork - bacon":          ["Raw","Pan-fried","Baked","Crispy"],
+  "turkey - breast":       ["Raw","Roasted","Grilled","Baked"],
+  "lamb - chop":           ["Raw","Grilled","Pan-fried","Roasted"],
+  "ham":                   ["As-is","Pan-fried","Baked"],
+  "bacon":                 ["Raw","Pan-fried","Baked","Crispy"],
+  "turkey breast - deli":  ["As-is","Heated"],
+  "ground beef - 80/20":   ["Raw","Pan-fried","Baked","Grilled"],
+  "ground beef - 85/15":   ["Raw","Pan-fried","Baked","Grilled"],
+  "ground beef - 90/10":   ["Raw","Pan-fried","Baked","Grilled"],
+  "ground beef - 93/7":    ["Raw","Pan-fried","Baked","Grilled"],
+  /* FISH */
+  "salmon":                ["Raw","Grilled","Baked","Pan-fried","Poached"],
+  "tuna":                  ["Raw","Baked","Pan-fried","Grilled"],
+  "shrimp":                ["Raw","Grilled","Sautéed","Boiled","Fried"],
+  "cod":                   ["Raw","Baked","Pan-fried","Grilled","Poached"],
+  "tilapia":               ["Raw","Baked","Pan-fried","Grilled"],
+  "sardines":              ["As-is","Grilled","Pan-fried"],
+  /* DAIRY */
+  "cheddar cheese":        ["As-is","Melted","Shredded"],
+  "mozzarella":            ["As-is","Melted","Fresh"],
+  "cream cheese":          ["As-is","Spread","Whipped"],
+  "heavy cream":           ["As-is","Whipped"],
+  "butter":                ["As-is","Melted","Browned"],
+  "whole milk":            ["As-is","Warm","Cold"],
+  "milk 2%":               ["As-is","Warm","Cold"],
+  "milk 1%":               ["As-is","Warm","Cold"],
+  "skim milk":             ["As-is","Warm","Cold"],
+  "oat milk":              ["As-is","Warm","Cold"],
+  "almond milk":           ["As-is","Warm","Cold"],
+  "soy milk":              ["As-is","Warm","Cold"],
+  "coconut milk":          ["As-is","Heated"],
+  "greek yogurt":          ["As-is","Mixed","Frozen"],
+  "cottage cheese":        ["As-is","Mixed"],
+  "sour cream":            ["As-is"],
+  /* VEGETABLES */
+  "tomato":                ["Raw","Roasted","Sautéed","Grilled"],
+  "onion":                 ["Raw","Caramelised","Sautéed","Roasted","Pickled"],
+  "garlic":                ["Raw","Roasted","Minced","Sautéed"],
+  "carrot":                ["Raw","Cooked","Roasted","Steamed"],
+  "bell pepper":           ["Raw","Roasted","Sautéed","Grilled"],
+  "jalapeño":              ["Raw","Roasted","Pickled"],
+  "cucumber":              ["Raw","Pickled"],
+  "zucchini":              ["Raw","Sautéed","Grilled","Roasted"],
+  "mushroom":              ["Raw","Sautéed","Roasted","Grilled"],
+  "broccoli":              ["Raw","Steamed","Roasted","Sautéed"],
+  "spinach":               ["Raw","Sautéed","Steamed"],
+  "kale":                  ["Raw","Sautéed","Baked","Steamed"],
+  "lettuce":               ["Raw"],
+  "sweet potato":          ["Raw","Baked","Boiled","Roasted","Mashed"],
+  "yellow potato":         ["Raw","Boiled","Baked","Roasted","Mashed"],
+  "cauliflower":           ["Raw","Roasted","Steamed","Sautéed","Mashed"],
+  "green beans":           ["Raw","Steamed","Sautéed","Blanched"],
+  "green beans - canned":  ["Drained","Sautéed","Steamed"],
+  "green peas":            ["Raw","Boiled","Steamed","Sautéed"],
+  "cabbage":               ["Raw","Shredded","Sautéed","Braised","Pickled"],
+  "celery":                ["Raw","Cooked"],
+  "asparagus":             ["Raw","Roasted","Steamed","Grilled"],
+  "jicama":                ["Raw","Shredded"],
+  "corn - canned":         ["As-is","Sautéed","Roasted"],
+  "tomato - canned":       ["As-is","Cooked","Stewed"],
+  "tomato paste":          ["As-is","Cooked"],
+  "tomato sauce":          ["As-is","Heated"],
+  "green onion":           ["Raw","Sautéed","Grilled"],
+  /* FRUITS */
+  "banana":                ["Raw","Blended","Frozen","Baked"],
+  "apple":                 ["Raw","Baked","Cooked"],
+  "avocado":               ["Raw","Mashed","Sliced"],
+  "orange":                ["Raw","Juiced"],
+  "mango":                 ["Raw","Blended","Grilled"],
+  "watermelon":            ["Raw","Chilled"],
+  "grapes":                ["Raw","Frozen"],
+  "lemon":                 ["Juiced","Zested","As-is"],
+  "pineapple":             ["Raw","Grilled"],
+  "pear":                  ["Raw","Baked","Poached"],
+  /* BERRIES */
+  "strawberry":            ["Raw","Blended","Frozen"],
+  "blueberry":             ["Raw","Blended","Frozen","Baked"],
+  "raspberry":             ["Raw","Blended","Frozen"],
+  "blackberry":            ["Raw","Blended","Frozen"],
+  "cranberry":             ["Raw","Dried","Cooked"],
+  /* LEGUMES & PLANT PROTEIN */
+  "tofu":                  ["Raw","Pan-fried","Baked","Scrambled","Grilled"],
+  "lentils":               ["Cooked","Boiled"],
+  "chickpeas":             ["Cooked","Roasted"],
+  "black beans":           ["Cooked"],
+  "edamame":               ["Raw","Boiled","Steamed"],
+  "almonds":               ["Raw","Roasted","Toasted"],
+  "peanut butter":         ["As-is","Melted"],
+  "chickpeas - canned":    ["As-is","Roasted","Sautéed"],
+  "black beans - canned":  ["As-is","Cooked"],
+  "kidney beans - red canned":  ["As-is","Cooked"],
+  "kidney beans - dark canned": ["As-is","Cooked"],
+  "pinto beans - canned":  ["As-is","Cooked"],
+  "navy beans - canned":   ["As-is","Cooked"],
+  /* GRAINS */
+  "white rice":            ["Cooked","Steamed","Fried"],
+  "brown rice":            ["Cooked","Steamed"],
+  "oats":                  ["Raw","Cooked","Overnight","Baked"],
+  "quinoa":                ["Cooked"],
+  "bread":                 ["Plain","Toasted"],
+  "bread - whole wheat":   ["Plain","Toasted"],
+  "pasta":                 ["Cooked","Al dente"],
+  "pasta - dry":           ["Cooked","Al dente"],
+  "tortilla":              ["As-is","Heated","Toasted"],
+  "tortilla - flour":      ["As-is","Heated","Toasted"],
+  /* OILS & FATS */
+  "olive oil":             ["As-is","Heated"],
+  "coconut oil":           ["As-is","Melted","Heated"],
+  "sesame oil":            ["As-is","Heated"],
+  "avocado oil":           ["As-is","Heated"],
+  /* SEASONINGS */
+  "salt":                  ["As-is"],
+  "black pepper":          ["Ground","Cracked"],
+  "cumin":                 ["Ground","Toasted"],
+  "paprika":               ["As-is","Smoked"],
+  "turmeric":              ["As-is","Cooked"],
+  "ginger":                ["Raw","Grated","Dried"],
+  "cilantro":              ["Fresh","Dried","Chopped"],
+  "garlic powder":         ["As-is"],
+  "oregano":               ["Dried","Fresh"],
+  "chili powder":          ["As-is"],
+  "basil":                 ["Fresh","Dried","Chopped"],
+  "cinnamon":              ["Ground","As-is"],
+  "vanilla extract":       ["As-is"],
+  "vinegar":               ["As-is"],
+  /* SUPPLEMENTS */
+  "whey protein powder":   ["Mixed with water","Mixed with milk","Blended"],
+  "plant protein powder":  ["Mixed with water","Mixed with milk","Blended"],
+  "casein protein powder": ["Mixed","Overnight"],
+  "collagen peptides":     ["Mixed","As-is"],
+  "creatine monohydrate":  ["Mixed","As-is"],
+  "matcha powder":         ["Mixed","Brewed","Blended"],
+  /* BAKING */
+  "all-purpose flour":     ["As-is"],
+  "whole wheat flour":     ["As-is"],
+  "almond flour":          ["As-is"],
+  "coconut flour":         ["As-is"],
+  "baking powder":         ["As-is"],
+  "baking soda":           ["As-is"],
+  "cornstarch":            ["As-is","Dissolved"],
+  "sugar - white":         ["As-is","Caramelised"],
+  "sugar - brown":         ["As-is"],
+  "powdered sugar":        ["As-is"],
+  "honey":                 ["As-is","Warm"],
+  "cacao powder":          ["As-is","Mixed"],
+  "cacao nibs":            ["As-is","Toasted"],
+  "dark chocolate":        ["As-is","Melted"],
+  /* BEVERAGES */
+  "green tea":             ["Brewed","Iced"],
+  "black tea":             ["Brewed","Iced"],
+  "chamomile tea":         ["Brewed"],
+  "mint tea":              ["Brewed","Iced"],
+  "earl grey tea":         ["Brewed"],
+  "oolong tea":            ["Brewed"],
+  "coffee - black":        ["Brewed","Iced","Espresso"],
+  "orange juice":          ["As-is","Fresh-squeezed","Chilled"],
+  "coconut water":         ["As-is","Chilled"],
+  "lemonade":              ["As-is","Chilled"],
+};
+
+/* Count-based portions: 1 egg = 50g, 1 carrot = 60g, etc.
+   countLabel = what to call one unit; countGrams = grams per one unit */
+const COUNT_LABELS = {
+  "egg":                   {label:"egg",       grams:50},
+  "tomato":                {label:"tomato",    grams:120},
+  "onion":                 {label:"onion",     grams:80},
+  "carrot":                {label:"carrot",    grams:60},
+  "bell pepper":           {label:"pepper",    grams:120},
+  "jalapeño":              {label:"jalapeño",  grams:45},
+  "cucumber":              {label:"cucumber",  grams:300},
+  "zucchini":              {label:"zucchini",  grams:200},
+  "garlic":                {label:"clove",     grams:6},
+  "mushroom":              {label:"mushroom",  grams:15},
+  "sweet potato":          {label:"potato",    grams:130},
+  "yellow potato":         {label:"potato",    grams:170},
+  "avocado":               {label:"avocado",   grams:200},
+  "banana":                {label:"banana",    grams:120},
+  "apple":                 {label:"apple",     grams:180},
+  "orange":                {label:"orange",    grams:130},
+  "lemon":                 {label:"lemon",     grams:60},
+  "pear":                  {label:"pear",      grams:180},
+  "mango":                 {label:"mango",     grams:300},
+  "chicken - breast":      {label:"breast",    grams:150},
+  "chicken - thigh":       {label:"thigh",     grams:130},
+  "chicken - wings":       {label:"wing",      grams:45},
+  "chicken - drumstick":   {label:"drumstick", grams:110},
+  "egg":                   {label:"egg",       grams:50},
+  "whey protein powder":   {label:"scoop",     grams:32},
+  "plant protein powder":  {label:"scoop",     grams:32},
+  "casein protein powder": {label:"scoop",     grams:32},
+  "creatine monohydrate":  {label:"scoop",     grams:5},
+  "collagen peptides":     {label:"scoop",     grams:20},
+  "butter":                {label:"tbsp",      grams:14},
+  "olive oil":             {label:"tbsp",      grams:14},
+  "coconut oil":           {label:"tbsp",      grams:14},
+  "honey":                 {label:"tbsp",      grams:21},
+  "peanut butter":         {label:"tbsp",      grams:32},
+  "bread":                 {label:"slice",     grams:35},
+  "bread - whole wheat":   {label:"slice",     grams:28},
+  "green onion":           {label:"stalk",     grams:15},
 };
 
 const SEED = [
@@ -765,10 +940,36 @@ function scale(n, amt) {
 }
 /* Unit-aware ingredient scaling: converts amount+unit to grams first */
 function scaleIng(ing) {
-  const grams = portionToG(Number(ing.amount)||0, ing.unit || ing.nutrition.unit || "g");
+  let grams;
+  if (ing.unit === "unit" && ing.nutrition?.countGrams) {
+    grams = (Number(ing.amount)||0) * Number(ing.nutrition.countGrams);
+  } else {
+    grams = portionToG(Number(ing.amount)||0, ing.unit || ing.nutrition.unit || "g");
+  }
   const f = grams / 100;
   const n = ing.nutrition;
   return {cal:(n.cal||0)*f,protein:(n.protein||0)*f,carbs:(n.carbs||0)*f,fat:(n.fat||0)*f,fiber:(n.fiber||0)*f,sugar:(n.sugar||0)*f};
+}
+
+/* "per 1 egg (50g)" or "per 100g" */
+function portionLabel(n) {
+  if (n?.countLabel && n?.countGrams) {
+    const u = n.unit === "ml" ? "ml" : "g";
+    return `per 1 ${n.countLabel} (${n.countGrams}${u})`;
+  }
+  return `per ${Number(n?.portion)||100}${n?.unit||"g"}`;
+}
+
+/* Display an ingredient amount: "2 eggs" or "150g" */
+function fmtAmt(amount, unit, nutrition) {
+  if (unit === "unit" && nutrition?.countLabel) {
+    const n = Number(amount)||0;
+    const label = nutrition.countLabel;
+    const plural = n !== 1 && !label.endsWith("s") ? "s" : "";
+    const g = rnd(n * (Number(nutrition.countGrams)||100));
+    return `${n} ${label}${plural} (${g}g)`;
+  }
+  return `${amount}${unit}`;
 }
 /* Merge live pantry data into a stored ingredient snapshot.
    Falls back to stored values if the food was deleted or has no foodId. */
@@ -794,7 +995,11 @@ function buildSeedFoods() {
     const nk = s.n.toLowerCase().replace(/[A-Z]/g, c => c.toLowerCase());
     const nutrition = NDB[nk] || lookup(s.n) || emptyN();
     const cookMethods = COOK_METHODS_MAP[normK(s.n)] || [];
-    return { id: "seed_" + i, name: s.n, tags: s.t, emoji: s.e || "🍽", image: null, nutrition: {...nutrition}, cookMethods, createdAt: now - i * 100 };
+    const countInfo = COUNT_LABELS[normK(s.n)] || null;
+    const enrichedNutrition = countInfo
+      ? { ...nutrition, countLabel: countInfo.label, countGrams: countInfo.grams }
+      : { ...nutrition };
+    return { id: "seed_" + i, name: s.n, tags: s.t, emoji: s.e || "🍽", image: null, nutrition: enrichedNutrition, cookMethods, createdAt: now - i * 100 };
   });
 }
 
@@ -1459,23 +1664,34 @@ function CatTab({ active, onClick, label, count, p }) {
 
 /* QuickPickPopup — inline amount picker that appears when "Select" is tapped on a card */
 function QuickPickPopup({ food, onSelect, onClose }) {
-  const defaultAmt = Number(food.nutrition.portion) || 100;
-  const defaultUnit = food.nutrition.unit || "g";
+  const n = food.nutrition;
+  const hasCount = !!(n.countLabel && n.countGrams);
+  const defaultUnit = hasCount ? "unit" : (n.unit || "g");
+  const defaultAmt  = hasCount ? 1 : (Number(n.portion) || 100);
   const [amt, setAmt] = useState(String(defaultAmt));
   const [unit, setUnit] = useState(defaultUnit);
-  const f = portionToG(Number(amt) || defaultAmt, unit) / 100;
-  const n = food.nutrition;
+
+  const f = unit === "unit" && n.countGrams
+    ? (Number(amt)||defaultAmt) * Number(n.countGrams) / 100
+    : portionToG(Number(amt)||defaultAmt, unit) / 100;
+
+  const amtLabel = unit === "unit" && n.countLabel
+    ? `${amt} ${n.countLabel}${Number(amt)!==1&&!n.countLabel.endsWith("s")?"s":""} (${rnd((Number(amt)||0)*Number(n.countGrams))}g)`
+    : null;
+
   return (
     <div onClick={e => e.stopPropagation()} style={{
       position: "absolute", right: 0, top: "100%", marginTop: 4, zIndex: 30,
       background: T.raised, border: "1.5px solid " + T.sageD, borderRadius: 14,
-      padding: "12px 14px", width: 240, boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+      padding: "12px 14px", width: 250, boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
     }}>
-      <p style={{ fontWeight: 700, fontSize: 13, margin: "0 0 8px", color: T.ink }}>{food.name}</p>
+      <p style={{ fontWeight: 700, fontSize: 13, margin: "0 0 6px", color: T.ink }}>{food.name}</p>
+      {amtLabel && <p style={{fontSize:10,color:T.soft,margin:"0 0 8px",fontFamily:"monospace"}}>{amtLabel}</p>}
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         <input type="number" value={amt} onChange={e => setAmt(e.target.value)}
           style={IS({ width: 70, padding: "5px 8px", fontSize: 14, fontFamily: "monospace" })} autoFocus />
-        <select value={unit} onChange={e => setUnit(e.target.value)} style={IS({ padding: "5px 6px", fontSize: 13, width: "auto" })}>
+        <select value={unit} onChange={e=>{setUnit(e.target.value);setAmt(e.target.value==="unit"?"1":String(Number(n.portion)||100));}} style={IS({ padding: "5px 6px", fontSize: 13, width: "auto" })}>
+          {hasCount && <option value="unit">{n.countLabel}</option>}
           <option value="g">g</option><option value="ml">ml</option>
           <option value="oz">oz</option><option value="lb">lb</option>
           <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
@@ -1483,10 +1699,10 @@ function QuickPickPopup({ food, onSelect, onClose }) {
       </div>
       <div style={{ background: T.cream, borderRadius: 8, padding: "7px 10px", marginBottom: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", rowGap: 3, columnGap: 10 }}>
-          <CS l="Cal" v={rnd((n.cal||0)*f)} />
+          <CS l="Cal"     v={rnd((n.cal||0)*f)} />
           <CS l="Protein" v={rnd((n.protein||0)*f,1)+"g"} />
-          <CS l="Carbs" v={rnd((n.carbs||0)*f,1)+"g"} />
-          <CS l="Fat" v={rnd((n.fat||0)*f,1)+"g"} />
+          <CS l="Carbs"   v={rnd((n.carbs||0)*f,1)+"g"} />
+          <CS l="Fat"     v={rnd((n.fat||0)*f,1)+"g"} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 6 }}>
@@ -1566,7 +1782,7 @@ function FoodCard({ food, catById, showNutrition, selected, contextOpen, quickPi
           </div>
           {/* Back */}
           <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", transform: "rotateY(180deg)", background: p ? p.soft : T.cream, border: "1.5px solid " + (p ? p.hex : T.lineS), borderRadius: 12, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "8px 6px", gap: 3 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: p ? p.deep : T.soft, textTransform: "uppercase", letterSpacing: "0.04em", margin: "0 0 3px", textAlign: "center" }}>per {portion}{unit}</p>
+            <p style={{ fontSize: 10, fontWeight: 700, color: p ? p.deep : T.soft, textTransform: "uppercase", letterSpacing: "0.04em", margin: "0 0 3px", textAlign: "center" }}>{portionLabel(n)}</p>
             {topNuts.map(nt => (
               <div key={nt.label} style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "2px 5px", background: p ? p.hex + "22" : T.line + "55", borderRadius: 5 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 600, color: p ? p.deep : T.soft }}>{nt.label}</span>
@@ -1614,7 +1830,7 @@ function FoodCard({ food, catById, showNutrition, selected, contextOpen, quickPi
             {tags.slice(0, 3).map(tid => { const c = catById[tid]; if (!c) return null; const pp = c.palette; return <span key={tid} style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: pp.soft, color: pp.deep, textTransform: "uppercase", letterSpacing: "0.03em" }}>{c.name}</span>; })}
             {tags.length > 3 && <span style={{ fontSize: 9, color: T.faint }}>+{tags.length - 3}</span>}
           </div>
-          <p style={{ fontSize: 10, color: T.faint, margin: "0 0 4px", fontFamily: "monospace", fontWeight: 600 }}>per {portion}{unit}</p>
+          <p style={{ fontSize: 10, color: T.faint, margin: "0 0 4px", fontFamily: "monospace", fontWeight: 600 }}>{portionLabel(n)}</p>
           <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", rowGap: 2, columnGap: 8 }}>
             <CS l="Cal" v={rnd(n.cal * f)} />
             <CS l="Protein" v={rnd(n.protein * f, 1) + "g"} />
@@ -1902,7 +2118,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
               <NRow l="Fiber" v={rnd(food.nutrition.fiber*calcF,1)} u="g" indent onChange={()=>{}}/>
               <NRow l="Fat" v={rnd(food.nutrition.fat*calcF,1)} u="g" last onChange={()=>{}}/>
               <p style={{fontSize:10,color:T.faint,margin:"8px 0 0",fontFamily:"monospace",lineHeight:1.5}}>
-                {isCalcMode?`Showing: ${calcAmt}${calcUnit} | Default: ${food.nutrition.portion}${food.nutrition.unit}`:`Default: ${food.nutrition.portion}${food.nutrition.unit} | Type above to recalculate`}
+                {isCalcMode?`Showing: ${calcAmt}${calcUnit} | ${portionLabel(food.nutrition)}`:`${portionLabel(food.nutrition)} | Type above to recalculate`}
               </p>
             </>}
         </div>
@@ -2142,14 +2358,15 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
         {editing?<div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
           <div style={{display:"flex",gap:4}}>
             <input type="number" value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:Number(e.target.value)||0}:x))} style={IS({width:60,padding:"5px 6px",fontFamily:"monospace"})}/>
-            <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
+            <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value,amount:e.target.value==="unit"?1:x.amount}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
+              {ri.nutrition?.countLabel&&<option value="unit">{ri.nutrition.countLabel}</option>}
               <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
               <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
             </select>
           </div>
           <button onClick={()=>setIngs(prev=>prev.filter((_,i)=>i!==idx))} style={{padding:"3px 8px",borderRadius:7,border:"1px solid "+T.danger+"44",background:"transparent",color:T.danger,cursor:"pointer",fontSize:11,fontFamily:"system-ui,sans-serif",fontWeight:600}}>Remove</button>
         </div>
-        :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500,flexShrink:0}}>{ing.amount}{u}</span>}
+        :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500,flexShrink:0}}>{fmtAmt(ing.amount,u,ri.nutrition)}</span>}
       </div>;})}
     </div>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap"}}>
