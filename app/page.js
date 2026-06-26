@@ -2140,21 +2140,21 @@ function ExCard({ex,catById,selected,contextOpen,quickPickOpen,onView,onContextT
     </div>);
 
   return <div onClick={onContextToggle} onMouseDown={onLPStart} onMouseUp={onLPEnd} onMouseLeave={onLPEnd} onTouchStart={onLPStart} onTouchEnd={onLPEnd}
-    style={{background:T.raised,border:selected?"2px solid "+T.sageD:"1px solid "+T.line,borderRadius:14,overflow:"visible",cursor:"pointer",position:"relative",zIndex:(contextOpen||quickPickOpen)?16:"auto"}}>
-    <div style={{aspectRatio:"1",background:p?p.soft:T.cream,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"14px 14px 0 0",overflow:"hidden"}}>
+    style={{background:T.raised,border:selected?"2px solid "+T.sageD:"1px solid "+T.line,borderRadius:14,overflow:"visible",cursor:"pointer",position:"relative",zIndex:(contextOpen||quickPickOpen)?16:"auto",display:"flex",flexDirection:"column"}}>
+    <div style={{aspectRatio:"1",background:p?p.soft:T.cream,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"14px 14px 0 0",overflow:"hidden",flexShrink:0}}>
       {ex.image?<img src={ex.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:36}}>{ex.emoji||"🏋️"}</span>}
     </div>
     {selected&&<div style={{position:"absolute",top:4,right:4,fontSize:13,fontWeight:800,color:T.sageD,zIndex:2}}>&#10003;</div>}
-    <div style={{padding:"6px 8px"}}>
+    <div style={{padding:"6px 8px",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
       <p style={{fontWeight:700,fontSize:12,margin:"0 0 3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ex.name}</p>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
-          {tags.slice(0,2).map(tid=>{const c=catById[tid];if(!c)return null;return <span key={tid} style={{fontSize:8,fontWeight:700,padding:"1px 4px",borderRadius:3,background:c.palette.soft,color:c.palette.deep,textTransform:"uppercase"}}>{c.name}</span>;})}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4}}>
+        <div style={{display:"flex",gap:2,overflow:"hidden",flexShrink:1,minWidth:0}}>
+          {tags.slice(0,1).map(tid=>{const c=catById[tid];if(!c)return null;return <span key={tid} style={{fontSize:8,fontWeight:700,padding:"1px 4px",borderRadius:3,background:c.palette.soft,color:c.palette.deep,textTransform:"uppercase",whiteSpace:"nowrap"}}>{c.name}</span>;})}
         </div>
-        <span style={{fontSize:10,fontFamily:"monospace",color:T.soft,whiteSpace:"nowrap"}}>~{defCal} cal</span>
+        <span style={{fontSize:10,fontFamily:"monospace",color:T.soft,whiteSpace:"nowrap",flexShrink:0}}>~{defCal} cal</span>
       </div>
     </div>
-    <div style={{height:3,background:p?p.hex:T.lineS,borderRadius:"0 0 14px 14px"}}/>
+    <div style={{height:3,background:p?p.hex:T.lineS,borderRadius:"0 0 14px 14px",flexShrink:0}}/>
     {contextOpen&&!quickPickOpen&&<Popup/>}
     {quickPickOpen&&<div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"100%",left:0,right:0,zIndex:25,marginTop:4}}>
       <ExQuickPick ex={ex} onSelect={onSelect} onClose={onCloseQuickPick}/>

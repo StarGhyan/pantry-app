@@ -105,6 +105,7 @@ img {
 
   .app-main {
     margin-left: 0;
+    width: 100%;
     padding: 0.875rem 0.875rem 6rem;
     max-width: 100%;
   }
