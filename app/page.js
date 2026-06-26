@@ -928,16 +928,14 @@ export default function App() {
     {/* Main content */}
     <div className="app-main">
       {/* Top nav tabs */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.25rem",flexWrap:"wrap",gap:10}}>
+      <div className="section-header">
         <div style={{display:"flex",alignItems:"baseline",gap:8}}>
           <span style={{fontSize:22,fontWeight:800,letterSpacing:"-0.02em"}}>{isNutrition?"Pantry":"Workout"}</span>
-          <span style={{fontSize:11,color:T.faint,marginLeft:4,fontFamily:"monospace"}}>{isNutrition?"nutrition tracker":"exercise planner"}</span>
+          <span className="header-subtitle" style={{fontSize:11,color:T.faint,marginLeft:4,fontFamily:"monospace"}}>{isNutrition?"nutrition tracker":"exercise planner"}</span>
         </div>
-        <div style={{display:"flex",gap:3,background:T.cream,borderRadius:12,padding:4}}>
-          {tabItems.map(it=>{const a=activeTab===it.id;return <button key={it.id} onClick={()=>setActiveTab(it.id)} style={{
-            display:"flex",alignItems:"center",gap:6,border:"none",borderRadius:9,padding:"7px 14px",
-            background:a?T.raised:"transparent",fontWeight:600,fontSize:13,color:a?T.sageD:T.soft,cursor:"pointer",
-            fontFamily:"system-ui,sans-serif",
+        <div className="section-tabs-wrap">
+          {tabItems.map(it=>{const a=activeTab===it.id;return <button key={it.id} onClick={()=>setActiveTab(it.id)} className="section-tab-btn" style={{
+            background:a?T.raised:"transparent",color:a?T.sageD:T.soft,
           }}><span>{it.e}</span>{it.label}</button>;})}
         </div>
       </div>
@@ -1040,24 +1038,22 @@ export default function App() {
       {toast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:T.sageD,color:"#FBF7EE",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,zIndex:999,whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,0.2)"}}>{toast}</div>}
     </div>
 
-    {/* Mobile bottom nav */}
+    {/* Mobile bottom nav — mirrors the desktop sidebar: Nutrition | Workout */}
     <div className="app-bottom-nav">
       {[
-        {id:"stock",     sec:"nutrition", label:"Pantry",    icon:"🏠"},
-        {id:"recipes",   sec:"nutrition", label:"Recipes",   icon:"👨‍🍳"},
-        {id:"plan",      sec:"nutrition", label:"Plan",      icon:"📅"},
-        {id:"exercises", sec:"workout",   label:"Exercises", icon:"🏋️"},
-        {id:"routines",  sec:"workout",   label:"Routines",  icon:"📋"},
+        {sec:"nutrition", label:"Nutrition", icon:"🥗"},
+        {sec:"workout",   label:"Workout",   icon:"💪"},
       ].map(item=>{
-        const isActive=section===item.sec&&(isNutrition?tab:wTab)===item.id;
-        return <button key={item.id} onClick={()=>{setSection(item.sec);if(item.sec==="nutrition")setTab(item.id);else setWTab(item.id);}} style={{
+        const isActive=section===item.sec;
+        return <button key={item.sec} onClick={()=>setSection(item.sec)} style={{
           flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-          gap:2,padding:"8px 0",background:"transparent",border:"none",cursor:"pointer",
-          color:isActive?"#FBF7EE":"rgba(255,255,255,0.4)",fontFamily:"system-ui,sans-serif",
-          minHeight:54,transition:"color 0.15s",
+          gap:4,padding:"10px 0",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",
+          background:isActive?"rgba(255,255,255,0.13)":"transparent",
+          color:isActive?"#FBF7EE":"rgba(255,255,255,0.45)",
+          minHeight:60,transition:"background 0.2s,color 0.2s",
         }}>
-          <span style={{fontSize:isActive?22:19,lineHeight:1,transition:"font-size 0.15s"}}>{item.icon}</span>
-          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.03em",textTransform:"uppercase"}}>{item.label}</span>
+          <span style={{fontSize:26,lineHeight:1}}>{item.icon}</span>
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>{item.label}</span>
         </button>;
       })}
     </div>

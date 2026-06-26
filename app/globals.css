@@ -30,6 +30,7 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
 
 button,
@@ -166,6 +167,67 @@ img {
 }
 .scroll-x::-webkit-scrollbar {
   display: none;
+}
+
+/* ─── Section header + tab bar ─── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+
+.section-tabs-wrap {
+  display: flex;
+  gap: 3px;
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.section-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .header-subtitle {
+    display: none;
+  }
+
+  .section-tabs-wrap {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 1;
+  }
+
+  .section-tabs-wrap::-webkit-scrollbar {
+    display: none;
+  }
+
+  .section-tab-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }
 
 /* ─── Category chip strip ─── */
