@@ -1735,7 +1735,7 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
         </div>
       }
 
-      {hasTray && <div style={{ height: trayExpanded ? "55vh" : 80 }} />}
+      {hasTray && <div style={{ height: trayExpanded ? "55vh" : 140 }} />}
       {hasTray && <SelectionTray selections={selectedList} expanded={trayExpanded}
         onToggleExpand={() => setTrayExpanded(s => !s)}
         onUpdateAmount={updateSelection} onDeselect={deselectFood} onClear={clearAll}
@@ -2012,7 +2012,7 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
         <div style={{ display:"flex", gap:5, overflowX:"auto", padding:"0 16px 10px", scrollbarWidth:"none" }}>
           {selections.map(sel => (
             <span key={sel.food.id} style={{ flexShrink:0, fontSize:11, fontWeight:600, background:"rgba(255,255,255,0.15)", borderRadius:6, padding:"3px 8px", whiteSpace:"nowrap", color:"#FBF7EE" }}>
-              {sel.food.emoji||""} {sel.food.name} · {sel.amount}{sel.unit}
+              {sel.food.emoji||""} {sel.food.name} · {sel.unit==="unit"?sel.amount+"ct":sel.amount+sel.unit}
             </span>
           ))}
         </div>
@@ -2031,9 +2031,14 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {selections.map(sel => {
-                const f = portionToG(sel.amount, sel.unit) / 100;
-                const cal = rnd((sel.food.nutrition.cal || 0) * f);
-                const protein = rnd((sel.food.nutrition.protein || 0) * f, 1);
+                const n = sel.food.nutrition;
+                const grams = sel.unit === "unit" && n?.countGrams
+                  ? Number(sel.amount) * Number(n.countGrams)
+                  : portionToG(sel.amount, sel.unit);
+                const f = grams / 100;
+                const cal = rnd((n.cal || 0) * f);
+                const protein = rnd((n.protein || 0) * f, 1);
+                const hasCount = !!n?.countGrams;
                 return (
                   <div key={sel.food.id} style={{ background: T.raised, border: "1px solid " + T.line, borderRadius: 12, padding: 10, display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 28, flexShrink: 0 }}>{sel.food.emoji || ""}</span>
@@ -2044,10 +2049,12 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
                           style={{ width: 60, padding: "3px 6px", border: "1px solid " + T.lineS, borderRadius: 7, fontSize: 13, fontFamily: "monospace", background: T.raised, color: T.ink }} />
                         <select value={sel.unit} onChange={e => onUpdateAmount(sel.food.id, sel.amount, e.target.value)}
                           style={{ padding: "3px 5px", border: "1px solid " + T.lineS, borderRadius: 7, fontSize: 12, background: T.raised, color: T.ink }}>
+                          {hasCount && <option value="unit">ct</option>}
                           <option value="g">g</option><option value="ml">ml</option>
                           <option value="oz">oz</option><option value="lb">lb</option>
                           <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
                         </select>
+                        {sel.unit==="unit"&&n?.countGrams&&<span style={{fontSize:10,color:T.faint,fontFamily:"monospace"}}>= {rnd(Number(sel.amount)*Number(n.countGrams))}g</span>}
                         <span style={{ fontSize: 11, fontFamily: "monospace", color: T.soft }}>{cal} cal | {protein}g protein</span>
                       </div>
                     </div>
@@ -3021,7 +3028,7 @@ function WorkoutExercises({exercises,cats,catById,onOpen,onAdd,onManageCats,onMa
         onSelect={data=>handleSelect(ex,data)} onDeselect={()=>deselect(ex.id)}
         onLPStart={()=>startLP(ex)} onLPEnd={cancelLP}/>)}
     </div>}
-    {hasTray&&<div style={{height:trayExpanded?"55vh":80}}/>}
+    {hasTray&&<div style={{height:trayExpanded?"55vh":140}}/>}
     {hasTray&&<WSelectionTray selections={selectedList} expanded={trayExpanded}
       onToggleExpand={()=>setTrayExpanded(s=>!s)} onUpdate={updateSel} onDeselect={deselect} onClear={clearAll}
       onMakeRoutine={()=>onMakeRoutine(selectedList)}/>}
