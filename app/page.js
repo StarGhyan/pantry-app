@@ -992,8 +992,8 @@ function buildSeedFoods() {
   return SEED.map((s, i) => {
     const nk = s.n.toLowerCase().replace(/[A-Z]/g, c => c.toLowerCase());
     const nutrition = NDB[nk] || lookup(s.n) || emptyN();
-    const cookMethods = COOK_METHODS_MAP[normK(s.n)] || [];
-    const countInfo = COUNT_LABELS[normK(s.n)] || null;
+    const cookMethods = COOK_METHODS_MAP[normK(s.n)] || COOK_METHODS_MAP[s.n.toLowerCase().trim()] || [];
+    const countInfo = COUNT_LABELS[normK(s.n)] || COUNT_LABELS[s.n.toLowerCase().trim()] || null;
     const enrichedNutrition = countInfo
       ? { ...nutrition, countLabel: countInfo.label, countGrams: countInfo.grams }
       : { ...nutrition };
@@ -2136,52 +2136,38 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
       </div>
     </div>
 
-    {/* Cooking methods */}
+    {/* Cooking methods — same chip style as Tags */}
     {(()=>{
-      const suggested = COOK_METHODS_MAP[normK(food.name)] || [];
+      const suggested = COOK_METHODS_MAP[normK(food.name)] || COOK_METHODS_MAP[food.name.toLowerCase().trim()] || [];
       const active = editing ? cookMethods : (food.cookMethods||[]);
-      const custom = active.filter(m => !suggested.includes(m));
-      function toggleMethod(m){
-        setCookMethods(prev => prev.includes(m) ? prev.filter(x=>x!==m) : [...prev,m]);
-      }
+      // All methods to show: union of suggested + already-active custom ones
+      const allMethods = [...new Set([...suggested, ...active])];
+      function toggle(m){ setCookMethods(prev=>prev.includes(m)?prev.filter(x=>x!==m):[...prev,m]); }
       return <div style={{marginBottom:14,paddingTop:14,borderTop:"1px solid "+T.line}}>
-        <Label>Cooking methods</Label>
-        {editing ? <>
-          {suggested.length>0&&<>
-            <p style={{fontSize:11,color:T.faint,margin:"0 0 7px"}}>Tap to select:</p>
-            <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
-              {suggested.map(m=>{const on=cookMethods.includes(m);return(
-                <button key={m} onClick={()=>toggleMethod(m)} style={{
-                  fontSize:12,fontWeight:600,padding:"4px 11px",borderRadius:8,cursor:"pointer",
-                  fontFamily:"system-ui,sans-serif",transition:"all 0.12s",
-                  border:on?"1.5px solid "+T.sageD:"1px solid "+T.lineS,
-                  background:on?T.sageD:"transparent",color:on?"#FBF7EE":T.soft,
-                }}>{on?"✓ ":""}{m}</button>
-              );})}
-            </div>
-          </>}
-          {custom.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-            {custom.map((m,i)=>(
-              <span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 9px",borderRadius:7}}>
-                {m}
-                <button onClick={()=>setCookMethods(p=>p.filter(x=>x!==m))} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.sageD,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
-              </span>
-            ))}
-          </div>}
-          <div style={{display:"flex",gap:6}}>
-            <input value={newMethod} onChange={e=>setNewMethod(e.target.value)}
-              placeholder="+ Custom method…" style={IS({fontSize:13,flex:1})}
-              onKeyDown={e=>{if(e.key==="Enter"&&newMethod.trim()&&!cookMethods.includes(newMethod.trim())){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}}/>
-            <Btn onClick={()=>{if(newMethod.trim()&&!cookMethods.includes(newMethod.trim())){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}} disabled={!newMethod.trim()}>+ New</Btn>
-          </div>
-        </> : <>
-          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-            {active.map((m,i)=>(
-              <span key={i} style={{fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 10px",borderRadius:7}}>{m}</span>
-            ))}
-            {active.length===0&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
-          </div>
-        </>}
+        <Label>{editing?"Cooking methods — select all that apply":"Cooking methods"}</Label>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:editing&&newMethod!==undefined?8:0}}>
+          {allMethods.length===0&&!editing&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
+          {allMethods.map(m=>{
+            const on=active.includes(m);
+            const isCustom=!suggested.includes(m);
+            return <button key={m} onClick={()=>editing&&toggle(m)} style={{
+              display:"inline-flex",alignItems:"center",gap:5,padding:"4px 11px",fontSize:12,fontWeight:600,
+              cursor:editing?"pointer":"default",fontFamily:"system-ui,sans-serif",borderRadius:14,
+              border:on?"1.5px solid "+T.sageD:"1px solid "+T.line,
+              background:on?T.sage:"transparent",color:on?T.sageD:T.soft,
+            }}>
+              <span style={{width:7,height:7,borderRadius:"50%",background:on?T.sageD:T.lineS,display:"inline-block",flexShrink:0}}/>
+              {m}
+              {editing&&on&&isCustom&&<span onClick={e=>{e.stopPropagation();setCookMethods(p=>p.filter(x=>x!==m));}} style={{marginLeft:2,fontSize:13,lineHeight:1,color:T.sageD,cursor:"pointer"}}>×</span>}
+            </button>;
+          })}
+        </div>
+        {editing&&<div style={{display:"flex",gap:6,marginTop:8}}>
+          <input value={newMethod} onChange={e=>setNewMethod(e.target.value)}
+            placeholder="+ Add custom method…" style={IS({fontSize:13,flex:1})}
+            onKeyDown={e=>{if(e.key==="Enter"&&newMethod.trim()&&!cookMethods.includes(newMethod.trim())){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}}/>
+          <Btn onClick={()=>{if(newMethod.trim()&&!cookMethods.includes(newMethod.trim())){setCookMethods(p=>[...p,newMethod.trim()]);setNewMethod("");}}} disabled={!newMethod.trim()}>+ New</Btn>
+        </div>}
       </div>;
     })()}
 
