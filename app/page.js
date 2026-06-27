@@ -1276,7 +1276,7 @@ export default function App() {
   const [tasks, setTasks] = useState(() => load("tasks", []));
   const [collections, setCollections] = useState(() => load("task_collections", []));
   const [taskPlan, setTaskPlan] = useState(() => load("task_plan", {}));
-  const [tTab, setTTab] = useState("all");
+  const [tTab, setTTab] = useState("tasks");
 
   /* ── WORKOUT STATE ── */
   const [exercises, setExercises] = useState(() => load("w_exercises", buildSeedExercises()));
@@ -1416,7 +1416,7 @@ export default function App() {
     ? [{id:"stock",label:"In Stock",e:"🏠"},{id:"foods",label:"Foods",e:"🥦"},{id:"recipes",label:"Recipes",e:"👨‍🍳"},{id:"plan",label:"Plan",e:"📅"}]
     : isWorkout
     ? [{id:"exercises",label:"Exercises",e:"🏋️"},{id:"routines",label:"Routines",e:"📋"},{id:"plan",label:"Plan",e:"📅"}]
-    : [{id:"all",label:"All",e:"📋"},{id:"work",label:"Work",e:"💼"},{id:"chores",label:"Chores",e:"🏠"},{id:"personal",label:"Personal",e:"🎯"},{id:"collections",label:"Collections",e:"📁"},{id:"plan",label:"Plan",e:"📅"},{id:"done",label:"Done",e:"✅"}];
+    : [{id:"tasks",label:"Tasks",e:"📋"},{id:"collections",label:"Collections",e:"📁"},{id:"plan",label:"Plan",e:"📅"},{id:"done",label:"Done",e:"✅"}];
 
   return <div className="app-shell" style={{fontFamily:"system-ui,sans-serif",color:T.ink}}>
     {/* Desktop sidebar */}
@@ -3705,48 +3705,74 @@ const TASK_CATS = {
 const TASK_PRESETS = {
   chores: {
     "Clean": {
-      "Bathroom":   ["Scrub toilet","Clean sink","Clean mirror","Mop floor","Replace towels","Clean shower"],
-      "Kitchen":    ["Wash dishes","Clean counters","Clean stove","Mop floor","Empty trash","Clean fridge"],
-      "Living room":["Vacuum","Dust surfaces","Organize","Clean windows","Wipe surfaces"],
-      "Bedroom":    ["Make bed","Vacuum","Dust","Organize closet","Change sheets"],
-      "General":    ["Vacuum all rooms","Mop floors","Take out trash","Do laundry","Clean doors"],
+      "Bathroom":    ["Scrub toilet","Clean sink","Clean mirror","Mop floor","Replace towels","Clean shower","Wipe walls"],
+      "Kitchen":     ["Wash dishes","Clean counters","Clean stove","Mop floor","Empty trash","Clean fridge","Clean microwave","Wipe cabinets"],
+      "Living room": ["Vacuum","Dust surfaces","Organize","Clean windows","Wipe furniture","Tidy cushions"],
+      "Bedroom":     ["Make bed","Vacuum","Dust","Organize closet","Change sheets","Wipe nightstand"],
+      "Bathroom (deep)": ["Deep clean toilet","Scrub tiles","Clean grout","Wash curtains","Replace toiletries"],
+      "General":     ["Vacuum all rooms","Mop all floors","Take out trash","Clean doors","Wipe light switches"],
+    },
+    "Laundry": {
+      "Basics":      ["Wash clothes","Dry clothes","Fold laundry","Put away clothes","Separate colors"],
+      "Extra":       ["Iron clothes","Hand wash delicates","Clean washing machine","Wash bedding","Wash towels"],
     },
     "Prepare": {
-      "Food":       ["Meal prep","Make lunch","Cook dinner","Make breakfast","Prep snacks"],
-      "Home":       ["Set table","Prepare shopping list","Set up guest room"],
+      "Food":        ["Meal prep","Cook dinner","Make lunch","Make breakfast","Prep snacks","Defrost meat","Make smoothie"],
+      "Shopping":    ["Write grocery list","Grocery shopping","Online order","Check pantry stock","Restock essentials"],
+      "Home":        ["Set table","Prepare guest room","Arrange flowers","Set up for guests"],
     },
     "Organize": {
-      "Clothes":    ["Fold laundry","Organize closet","Sort donations","Iron clothes"],
-      "Home":       ["Declutter","File documents","Organize pantry","Sort mail"],
+      "Clothes":     ["Fold laundry","Organize closet","Sort donations","Seasonal swap","Tidy drawers"],
+      "Home":        ["Declutter","File documents","Organize pantry","Sort mail","Tidy shelves","Label containers"],
+      "Digital":     ["Organize phone photos","Delete old files","Clean downloads","Backup data"],
     },
-    "Errands":      ["Grocery shopping","Post office","Bank","Pharmacy","Pay bills"],
+    "Maintenance":   ["Replace light bulb","Fix squeaky door","Unclog drain","Check smoke alarms","Water plants","Clean AC filter"],
+    "Errands":       ["Grocery shopping","Post office","Bank","Pharmacy","Car wash","Pay bills","Return item","Dry cleaning"],
   },
   work: {
     "Job": {
-      "Write":      ["Report","Email","Proposal","Presentation","Summary","Meeting notes"],
-      "Plan":       ["Weekly schedule","Project timeline","Meeting agenda","Goal setting"],
-      "Organize":   ["Files","Emails","Calendar","Documents","Desktop"],
-      "Research":   ["Topic research","Market research","Competitor analysis"],
-      "Meetings":   ["Team standup","Client call","1:1","Review session","Brainstorm"],
+      "Write":       ["Report","Work email","Proposal","Presentation","Meeting notes","Summary","Documentation","Newsletter"],
+      "Plan":        ["Weekly schedule","Project timeline","Meeting agenda","Quarterly goals","Sprint planning","Roadmap update"],
+      "Organize":    ["Inbox zero","Organize files","Update calendar","Sort documents","Clean desktop","Archive emails"],
+      "Research":    ["Topic research","Competitor analysis","Market research","Data collection","Industry news"],
+      "Meetings":    ["Team standup","Client call","1:1 with manager","Review session","Brainstorm session","Interview"],
+      "Review":      ["Code review","Document review","Budget review","Performance review","Project debrief"],
     },
     "School": {
-      "Homework":   ["Math","English","Science","History","Language","Art","Programming"],
-      "Assignment": ["Essay","Project","Lab report","Presentation","Research paper"],
-      "Study":      ["Quiz prep","Exam review","Test study","Flashcards","Practice problems","Group study"],
-      "Reading":    ["Chapter review","Textbook","Article","Novel","Research paper"],
+      "Homework":    ["Math","English","Science","History","Geography","Biology","Chemistry","Physics","Art","PE","Programming","Language"],
+      "Assignment":  ["Essay","Group project","Lab report","Presentation","Research paper","Portfolio","Case study"],
+      "Study":       ["Quiz prep","Exam review","Test study","Make flashcards","Practice problems","Group study session","Review notes"],
+      "Reading":     ["Chapter review","Textbook reading","Research article","Assigned novel","Study guide"],
+      "Admin":       ["Register for class","Submit form","Check grades","Email teacher","Scholarship application"],
     },
     "Personal Work": {
-      "Project":    ["Side project","Creative work","Freelance","Portfolio update"],
-      "Learning":   ["Online course","Tutorial","Read documentation","Skill practice"],
-      "Admin":      ["Finances","Taxes","Insurance","Update resume","Budget"],
+      "Project":     ["Side project","Freelance work","Portfolio update","Creative project","App idea","Blog post","YouTube video"],
+      "Learning":    ["Online course","Tutorial","Read documentation","Skill practice","Coding practice","Language practice"],
+      "Admin":       ["Update budget","File taxes","Insurance review","Update resume","LinkedIn update","Organize finances"],
     },
   },
   personal: {
-    "Self-care":    ["Shower","Skin care","Hair care","Meditation","Journaling","Stretching"],
-    "Social":       ["Call friend","Text family","Plan meetup","Date night","Check in with someone"],
-    "Growth":       ["Reading","Online course","Learn new skill","Watch documentary"],
-    "Health":       ["Doctor appointment","Take vitamins","Workout","Drink water","Sleep early"],
-    "Errands":      ["Grocery shopping","Bank","Post office","Pick up prescription"],
+    "Self-care": {
+      "Daily":       ["Morning skin care","Evening skin care","Shower","Wash hair","Brush teeth","Take vitamins","Drink water"],
+      "Weekly":      ["Face mask","Hair treatment","Nails","Shave","Deep moisturize","Exfoliate"],
+      "Wellness":    ["Meditate","Journal","Stretch","Breathe exercise","Gratitude list","Digital detox"],
+    },
+    "Health": {
+      "Appointments":["Doctor","Dentist","Eye doctor","Therapist","Physio","Dermatologist","Blood test"],
+      "Daily habits":["Exercise","Drink 2L water","Sleep by 10pm","Take medication","Track food","Vitamins"],
+      "Mental":      ["Therapy session","Talk to someone","Rest day","Nature walk","Social media break"],
+    },
+    "Social": {
+      "Keep in touch":["Call a friend","Text family","Check in on someone","Write a letter","Birthday wish","Thank you note"],
+      "Plans":        ["Plan meetup","Date night","Family dinner","Group activity","Coffee catch-up","Party planning"],
+    },
+    "Growth": {
+      "Learning":    ["Read 20 minutes","Online course","Watch documentary","Learn new recipe","Language lesson","Podcast"],
+      "Creative":    ["Write","Draw / sketch","Photography","Music practice","Craft project","Cook new dish"],
+      "Reflection":  ["Journal","Review goals","Monthly review","Vision board","Set intentions"],
+    },
+    "Hobbies":       ["Photography","Gaming","Gardening","Cooking","Drawing","Knitting","Sport practice","Music","Dance","Hiking"],
+    "Errands":       ["Grocery shopping","Bank","Post office","Car service","Returns / exchanges","Pay bills","Pickup prescription","Hair cut"],
   }
 };
 
@@ -3755,6 +3781,7 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
   onAddTaskToDay,onRemoveTaskFromDay}){
   const [showAdd,setShowAdd]=useState(false);
   const [editTask,setEditTask]=useState(null);
+  const [catFilter,setCatFilter]=useState("all"); // within Tasks tab
 
   function daysUntil(d){
     if(!d)return null;
@@ -3764,21 +3791,21 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
   // All hooks must be called before any early returns
   const visible=useMemo(()=>{
     if(activeTab==="collections"||activeTab==="plan") return [];
+    if(activeTab==="done") return tasks.filter(t=>t.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+    // Tasks tab: pending, filtered by category chip
     let arr=tasks.filter(t=>{
-      if(activeTab==="done") return t.done;
       if(t.done) return false;
-      if(activeTab!=="all") return t.category===activeTab;
+      if(catFilter!=="all"&&t.category!==catFilter) return false;
       return true;
     });
     return arr.sort((a,b)=>{
-      if(a.done!==b.done) return a.done?1:-1;
       const da=a.dueDate?new Date(a.dueDate+"T12:00:00"):null;
       const db=b.dueDate?new Date(b.dueDate+"T12:00:00"):null;
       if(da&&db) return da-db;
       if(da) return -1; if(db) return 1;
       return b.createdAt-a.createdAt;
     });
-  },[tasks,activeTab]);
+  },[tasks,activeTab,catFilter]);
 
   const pending=tasks.filter(t=>!t.done).length;
   const overdue=tasks.filter(t=>!t.done&&t.dueDate&&daysUntil(t.dueDate)<0).length;
@@ -3792,20 +3819,35 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
     onAddToDay={onAddTaskToDay} onRemoveFromDay={onRemoveTaskFromDay} onToggle={onToggle}/>;
 
   return <div>
-    {/* Summary chips */}
-    {pending>0&&<div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-      <span style={{fontSize:12,fontWeight:600,padding:"4px 10px",borderRadius:8,background:T.cream,color:T.soft}}>{pending} pending</span>
-      {overdue>0&&<span style={{fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:8,background:T.danger+"18",color:T.danger}}>⚠️ {overdue} overdue</span>}
+    {/* Category filter chips + Add button — Tasks tab only */}
+    {activeTab==="tasks"&&<>
+      <div className="scroll-x" style={{display:"flex",gap:5,marginBottom:10,alignItems:"center"}}>
+        {[{id:"all",label:"All Tasks",emoji:"📋",hex:T.sageD,soft:T.sage},
+          ...Object.entries(TASK_CATS).map(([id,c])=>({id,...c}))].map(c=>{
+          const a=catFilter===c.id;const cnt=c.id==="all"?tasks.filter(t=>!t.done).length:tasks.filter(t=>!t.done&&t.category===c.id).length;
+          return <button key={c.id} onClick={()=>setCatFilter(c.id)} style={{
+            flexShrink:0,display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",
+            borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"system-ui,sans-serif",
+            border:a?"1.5px solid "+c.hex:"1px solid "+T.line,
+            background:a?c.soft:"transparent",color:a?c.hex:T.soft,
+          }}><span>{c.emoji}</span>{c.label}<span style={{fontSize:10,opacity:0.65}}>({cnt})</span></button>;
+        })}
+      </div>
+      {overdue>0&&<div style={{background:T.danger+"12",border:"1px solid "+T.danger+"33",borderRadius:10,padding:"8px 12px",marginBottom:10}}>
+        <span style={{fontSize:12,fontWeight:700,color:T.danger}}>⚠️ {overdue} task{overdue!==1?"s":""} overdue</span>
+      </div>}
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+        <Btn icon="+" onClick={()=>setShowAdd(true)}>Add task</Btn>
+      </div>
+    </>}
+    {activeTab==="done"&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <span style={{fontSize:12,color:T.faint}}>{tasks.filter(t=>t.done).length} completed</span>
     </div>}
-
-    <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-      <Btn icon="+" onClick={()=>setShowAdd(true)}>Add task</Btn>
-    </div>
 
     {visible.length===0
       ?<Empty icon={activeTab==="done"?"✅":"📋"}
           title={activeTab==="done"?"No completed tasks yet":"Nothing here"}
-          body={activeTab==="done"?"Tasks you complete show up here.":"Tap '+ Add task' to get started."}/>
+          body={activeTab==="done"?"Completed tasks show up here.":"Tap '+ Add task' to get started."}/>
       :<div style={{display:"flex",flexDirection:"column",gap:8}}>
         {visible.map(task=>{
           const d=daysUntil(task.dueDate);
