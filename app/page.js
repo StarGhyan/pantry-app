@@ -2971,6 +2971,9 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
   const [ings,setIngs]=useState(recipe.ingredients);
   const [servings,setServings]=useState(recipe.servings||1);
   const [viewServings,setViewServings]=useState(recipe.servings||1); // calculator in view mode
+  const [viewWeightMode,setViewWeightMode]=useState(false);
+  const [viewWeightAmt,setViewWeightAmt]=useState("");
+  const [viewWeightUnit,setViewWeightUnit]=useState("g");
   const [showPicker,setShowPicker]=useState(false);
   const [saving,setSaving]=useState(false);
   const [steps,setSteps]=useState(recipe.steps||[]);
@@ -2978,6 +2981,7 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
   useEffect(()=>{
     setName(recipe.name);setImage(recipe.image);setIngs(recipe.ingredients);
     setServings(recipe.servings||1);setViewServings(recipe.servings||1);
+    setViewWeightMode(false);setViewWeightAmt("");setViewWeightUnit("g");
     setSteps(recipe.steps||[]);
   },[recipe.id,mode]);
 
@@ -2991,10 +2995,18 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
   },[ings,foodsMap]);
 
   const baseServings=Number(servings)||1;
+  // Total gram weight from ingredients
+  const totalIngG=useMemo(()=>ings.reduce((s,ing)=>{
+    if(ing.unit==="unit"&&ing.nutrition?.countGrams) return s+(Number(ing.amount)||0)*Number(ing.nutrition.countGrams);
+    return s+portionToG(Number(ing.amount)||0,ing.unit||ing.nutrition?.unit||"g");
+  },0),[ings]);
+  const perServingG=totalIngG/(baseServings||1);
+
   // In view mode, show nutrition for `viewServings` servings (each serving = total/baseServings)
   const shown=(()=>{
     const perServ=k=>tot[k]/baseServings;
-    const mult=editing?baseServings:(Number(viewServings)||0); // edit shows whole recipe total
+    const effV=viewWeightMode&&perServingG>0?portionToG(Number(viewWeightAmt)||0,viewWeightUnit)/perServingG:(Number(viewServings)||0);
+    const mult=editing?baseServings:effV; // edit shows whole recipe total
     return{
       cal:rnd(perServ("cal")*mult), protein:rnd(perServ("protein")*mult,1),
       carbs:rnd(perServ("carbs")*mult,1), sugar:rnd(perServ("sugar")*mult,1),
@@ -3020,16 +3032,31 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
 
         {/* Servings control */}
         {editing
-          ?<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+          ?<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
             <span style={{fontSize:12,fontWeight:600,color:T.soft}}>Makes</span>
             <input type="number" min="0.5" step="0.5" value={servings} onChange={e=>setServings(e.target.value)} style={IS({width:64,padding:"5px 8px",fontFamily:"monospace",fontSize:14})}/>
             <span style={{fontSize:12,color:T.soft}}>serving{baseServings!==1?"s":""}</span>
+            {perServingG>0&&<span style={{fontSize:11,color:T.faint,fontFamily:"monospace"}}>· 1 serving ≈ {rnd(perServingG)}g</span>}
           </div>
-          :<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,padding:"6px 10px",background:T.cream,borderRadius:8,flexWrap:"wrap"}}>
-            <span style={{fontSize:12,fontWeight:600,color:T.soft}}>Show for</span>
-            <input type="number" min="0" step="0.5" value={viewServings} onChange={e=>setViewServings(e.target.value)} style={Object.assign({},IS({width:64,padding:"5px 8px",fontFamily:"monospace",fontSize:14}),{background:T.raised})}/>
-            <span style={{fontSize:12,color:T.soft}}>of {baseServings} serving{baseServings!==1?"s":""}</span>
-            {Number(viewServings)!==baseServings&&<button onClick={()=>setViewServings(baseServings)} style={{fontSize:11,fontWeight:600,color:T.tc,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif"}}>Reset</button>}
+          :<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,padding:"6px 10px",background:T.cream,borderRadius:8,flexWrap:"wrap"}}>
+            {/* Mode toggle */}
+            <div style={{display:"flex",gap:2,background:T.line+"44",borderRadius:6,padding:2}}>
+              {[{w:false,l:"Servings"},{w:true,l:"Weight"}].map(m=><button key={String(m.w)} onClick={()=>{setViewWeightMode(m.w);if(m.w){setViewWeightAmt(rnd(perServingG*(Number(viewServings)||1)));setViewWeightUnit("g");}else{if(perServingG>0)setViewServings(rnd(portionToG(Number(viewWeightAmt)||0,viewWeightUnit)/perServingG,1));}}} style={{padding:"2px 8px",borderRadius:5,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"system-ui,sans-serif",background:viewWeightMode===m.w?T.raised:"transparent",color:viewWeightMode===m.w?T.sageD:T.soft}}>{m.l}</button>)}
+            </div>
+            {!viewWeightMode
+              ?<>
+                <input type="number" min="0" step="0.5" value={viewServings} onChange={e=>setViewServings(e.target.value)} style={Object.assign({},IS({width:56,padding:"5px 8px",fontFamily:"monospace",fontSize:14}),{background:T.raised})}/>
+                <span style={{fontSize:12,color:T.soft}}>of {baseServings} serv.</span>
+                {Number(viewServings)!==baseServings&&<button onClick={()=>setViewServings(baseServings)} style={{fontSize:11,fontWeight:600,color:T.tc,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif"}}>Reset</button>}
+              </>
+              :<>
+                <input type="number" value={viewWeightAmt} onChange={e=>{const a=e.target.value;setViewWeightAmt(a);if(perServingG>0)setViewServings(rnd(portionToG(Number(a)||0,viewWeightUnit)/perServingG,2));}} style={Object.assign({},IS({width:64,padding:"5px 8px",fontFamily:"monospace",fontSize:14}),{background:T.raised})} placeholder="0"/>
+                <select value={viewWeightUnit} onChange={e=>{const u=e.target.value;setViewWeightUnit(u);if(perServingG>0)setViewServings(rnd(portionToG(Number(viewWeightAmt)||0,u)/perServingG,2));}} style={Object.assign({},IS({padding:"5px 6px",fontSize:12,width:"auto"}),{background:T.raised})}>
+                  <option value="g">g</option><option value="ml">ml</option>
+                  <option value="cup">cup</option><option value="oz">oz</option><option value="lb">lb</option>
+                </select>
+                {perServingG>0&&viewWeightAmt&&<span style={{fontSize:10,color:T.faint,fontFamily:"monospace"}}>≈{rnd(portionToG(Number(viewWeightAmt)||0,viewWeightUnit)/perServingG,1)}serv</span>}
+              </>}
           </div>}
       </div>
     </div>
@@ -3041,8 +3068,11 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
         <span style={{fontFamily:"monospace",fontSize:15,fontWeight:500}}>{v}{u}</span>
       </div>)}
       <div style={{flexBasis:"100%",fontSize:10,color:T.faint,fontFamily:"monospace"}}>
-        {editing?`Whole recipe (${baseServings} serving${baseServings!==1?"s":""})`
-          :`${viewServings} serving${Number(viewServings)!==1?"s":""} · per serving: ${rnd(tot.cal/baseServings)} cal`}
+        {editing
+          ?`Whole recipe (${baseServings} serving${baseServings!==1?"s":""})${perServingG>0?" · 1 serving ≈ "+rnd(perServingG)+"g":""}`
+          :viewWeightMode
+            ?`${viewWeightAmt||0}${viewWeightUnit}${perServingG>0?" ≈ "+rnd(portionToG(Number(viewWeightAmt)||0,viewWeightUnit)/perServingG,1)+" serv":""} · ${shown.cal} cal`
+            :`${viewServings} serving${Number(viewServings)!==1?"s":""} · per serving: ${rnd(tot.cal/baseServings)} cal${perServingG>0?" · ≈"+rnd(perServingG)+"g/serv":""}`}
       </div>
     </div>
 
@@ -3374,26 +3404,64 @@ function AddRecipeToPlanModal({recipes,onPick,onClose}){
   const [q,setQ]=useState("");
   const [chosen,setChosen]=useState(null);
   const [servings,setServings]=useState(1);
-  const filtered=recipes.filter(r=>r.name.toLowerCase().includes(q.toLowerCase()));
-  if(chosen) return <Modal onClose={onClose} width={400}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-      <h3 style={{margin:0}}>How many servings?</h3><CloseBtn onClick={onClose}/>
-    </div>
-    <div style={{background:T.cream,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
-      <p style={{fontWeight:700,fontSize:14,margin:"0 0 2px"}}>{chosen.name}</p>
-      <p style={{fontSize:11,color:T.soft,margin:0}}>Recipe makes {chosen.servings||1} serving{(chosen.servings||1)!==1?"s":""}</p>
-    </div>
-    <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:"center",marginBottom:14}}>
-      <button onClick={()=>setServings(s=>Math.max(0.5,(Number(s)||1)-0.5))} style={{width:36,height:36,borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,cursor:"pointer",fontSize:18,fontWeight:700,color:T.sageD}}>−</button>
-      <input type="number" min="0" step="0.5" value={servings} onChange={e=>setServings(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")onPick(chosen.id,Number(servings)||1);}}
-        style={Object.assign({},IS({width:80,padding:"8px",fontSize:18,fontFamily:"monospace",textAlign:"center"}))}/>
-      <button onClick={()=>setServings(s=>(Number(s)||1)+0.5)} style={{width:36,height:36,borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,cursor:"pointer",fontSize:18,fontWeight:700,color:T.sageD}}>+</button>
-    </div>
-    <div style={{display:"flex",gap:8}}>
-      <Btn variant="ghost" full onClick={()=>setChosen(null)}>Back</Btn>
-      <Btn full onClick={()=>onPick(chosen.id,Number(servings)||1)}>Add to meal ↵</Btn>
-    </div>
-  </Modal>;
+  const [weightMode,setWeightMode]=useState(false);
+  const [weightAmount,setWeightAmount]=useState("");
+  const [weightUnit,setWeightUnit]=useState("g");
+
+  if(chosen){
+    const totalG=recipeWeightG(chosen);
+    const psG=totalG/(Number(chosen.servings)||1);
+    const effS=weightMode&&psG>0?rnd(portionToG(Number(weightAmount)||0,weightUnit)/psG,2):Number(servings)||1;
+
+    function switchMode(toWeight){
+      setWeightMode(toWeight);
+      if(toWeight){setWeightAmount(rnd(psG*(Number(servings)||1)));setWeightUnit("g");}
+      else setServings(rnd(effS,2));
+    }
+    function doAdd(){onPick(chosen.id,effS);}
+
+    return <Modal onClose={onClose} width={420}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <h3 style={{margin:0}}>Add to meal</h3><CloseBtn onClick={onClose}/>
+      </div>
+      <div style={{background:T.cream,borderRadius:10,padding:"10px 14px",marginBottom:14}}>
+        <p style={{fontWeight:700,fontSize:14,margin:"0 0 2px"}}>{chosen.name}</p>
+        <p style={{fontSize:11,color:T.soft,margin:0}}>Makes {chosen.servings||1} serving{(chosen.servings||1)!==1?"s":""}{psG>0?" · 1 serving ≈ "+rnd(psG)+"g":""}</p>
+      </div>
+
+      {/* Mode toggle */}
+      <div style={{display:"flex",gap:4,marginBottom:14,background:T.cream,borderRadius:10,padding:4}}>
+        {[{id:false,label:"By servings"},{id:true,label:"By weight"}].map(m=><button key={String(m.id)} onClick={()=>switchMode(m.id)} style={{flex:1,padding:"6px",borderRadius:7,border:"none",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"system-ui,sans-serif",background:weightMode===m.id?T.raised:"transparent",color:weightMode===m.id?T.sageD:T.soft}}>{m.label}</button>)}
+      </div>
+
+      {!weightMode
+        ?<div style={{display:"flex",alignItems:"center",gap:8,justifyContent:"center",marginBottom:14}}>
+            <button onClick={()=>setServings(s=>Math.max(0.5,(Number(s)||1)-0.5))} style={{width:36,height:36,borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,cursor:"pointer",fontSize:18,fontWeight:700,color:T.sageD}}>−</button>
+            <input type="number" min="0" step="0.5" value={servings} autoFocus onChange={e=>setServings(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")doAdd();}}
+              style={Object.assign({},IS({width:80,padding:"8px",fontSize:18,fontFamily:"monospace",textAlign:"center"}))}/>
+            <button onClick={()=>setServings(s=>(Number(s)||1)+0.5)} style={{width:36,height:36,borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,cursor:"pointer",fontSize:18,fontWeight:700,color:T.sageD}}>+</button>
+          </div>
+        :<div style={{marginBottom:14}}>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <input type="number" value={weightAmount} autoFocus onChange={e=>{const a=e.target.value;setWeightAmount(a);if(psG>0)setServings(rnd(portionToG(Number(a)||0,weightUnit)/psG,2));}} onKeyDown={e=>{if(e.key==="Enter")doAdd();}}
+                style={Object.assign({},IS({flex:1,padding:"8px",fontSize:18,fontFamily:"monospace",textAlign:"center"}))} placeholder="0"/>
+              <select value={weightUnit} onChange={e=>{const u=e.target.value;setWeightUnit(u);if(psG>0)setServings(rnd(portionToG(Number(weightAmount)||0,u)/psG,2));}} style={IS({width:"auto",padding:"8px",fontSize:14})}>
+                <option value="g">g — grams</option>
+                <option value="ml">ml — millilitres</option>
+                <option value="cup">cup (~240ml)</option>
+                <option value="oz">oz — ounces</option>
+                <option value="lb">lb — pounds</option>
+              </select>
+            </div>
+            {psG>0&&weightAmount&&<p style={{textAlign:"center",fontSize:12,color:T.faint,margin:0}}>≈ {effS} serving{effS!==1?"s":""}</p>}
+          </div>}
+
+      <div style={{display:"flex",gap:8}}>
+        <Btn variant="ghost" full onClick={()=>setChosen(null)}>Back</Btn>
+        <Btn full disabled={weightMode&&(!weightAmount||Number(weightAmount)<=0)} onClick={doAdd}>Add to meal ↵</Btn>
+      </div>
+    </Modal>;
+  }
   return <Modal onClose={onClose} width={400}>
     <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><h3 style={{margin:0}}>Add recipe to meal</h3><CloseBtn onClick={onClose}/></div>
     <input autoFocus placeholder="Search recipes…" value={q} onChange={e=>setQ(e.target.value)} style={IS({marginBottom:10})}/>
