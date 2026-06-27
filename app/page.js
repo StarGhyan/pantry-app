@@ -500,13 +500,13 @@ const COOK_METHODS_MAP = {
 
 /* Count-based portions: 1 egg = 50g, 1 carrot = 60g, etc.
    countLabel = what to call one unit; countGrams = medium/default grams per one unit */
-/* Nutrient filters for the food browser — values are per 100g */
+/* Nutrient sort options for the food browser — per 100g, sorts remaining list */
 const NUTRIENT_FILTERS = [
-  {id:"hiprotein", label:"High Protein", emoji:"💪", test: n => (n.protein||0) >= 15},
-  {id:"lowcal",    label:"Low Calorie",  emoji:"🔥", test: n => (n.cal||0) <= 60},
-  {id:"hifiber",   label:"High Fiber",   emoji:"🌾", test: n => (n.fiber||0) >= 3},
-  {id:"lowcarb",   label:"Low Carb",     emoji:"🥑", test: n => (n.carbs||0) <= 5},
-  {id:"hiprotein2",label:"Very High Prot",emoji:"⚡",test: n => (n.protein||0) >= 25},
+  {id:"hiprotein", label:"High Protein", emoji:"💪", sort:(a,b)=>(b.nutrition.protein||0)-(a.nutrition.protein||0), value:f=>rnd(f.nutrition.protein||0,1)+"g prot"},
+  {id:"lowcal",    label:"Low Calorie",  emoji:"🔥", sort:(a,b)=>(a.nutrition.cal||0)-(b.nutrition.cal||0),     value:f=>rnd(f.nutrition.cal||0)+" cal"},
+  {id:"hifiber",   label:"High Fiber",   emoji:"🌾", sort:(a,b)=>(b.nutrition.fiber||0)-(a.nutrition.fiber||0),  value:f=>rnd(f.nutrition.fiber||0,1)+"g fiber"},
+  {id:"lowcarb",   label:"Low Carb",     emoji:"🥑", sort:(a,b)=>(a.nutrition.carbs||0)-(b.nutrition.carbs||0),  value:f=>rnd(f.nutrition.carbs||0,1)+"g carb"},
+  {id:"hifat",     label:"High Fat",     emoji:"🧈", sort:(a,b)=>(b.nutrition.fat||0)-(a.nutrition.fat||0),      value:f=>rnd(f.nutrition.fat||0,1)+"g fat"},
 ];
 
 /* Universal cooking methods — always available as options in the food editor */
@@ -1854,11 +1854,11 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
   const [showAddSubcat, setShowAddSubcat] = useState(false);
   const [newSubcatLabel, setNewSubcatLabel] = useState("");
   const [newSubcatEmoji, setNewSubcatEmoji] = useState("🏷️");
-  const [activeFilters, setActiveFilters] = useState(new Set());
+  const [activeSort, setActiveSort] = useState(null); // id of active nutrient sort
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const longPressTimer = useRef(null);
 
-  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); setActiveFilters(new Set()); setShowFilterPanel(false); }, [activeCat]);
+  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); setActiveSort(null); setShowFilterPanel(false); }, [activeCat]);
   const selectedIds = useMemo(() => new Set(Object.keys(selections)), [selections]);
   const selectedList = useMemo(() => Object.values(selections), [selections]);
   // Merge built-in subcats with user-defined ones for the active category
@@ -1882,12 +1882,6 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
       }
       // Search filter
       if (searching && !nl.includes(ql)) return false;
-      // Nutrient filters (all must pass)
-      if (activeFilters.size > 0) {
-        const n = f.nutrition;
-        const pass = NUTRIENT_FILTERS.filter(flt=>activeFilters.has(flt.id)).every(flt=>flt.test(n));
-        if (!pass) return false;
-      }
       return true;
     });
 
@@ -1905,11 +1899,14 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
         if (ra !== rb) return ra - rb;
         return a.name.localeCompare(b.name);
       });
+    } else if (activeSort) {
+      const sortFn = NUTRIENT_FILTERS.find(f=>f.id===activeSort)?.sort;
+      if (sortFn) arr.sort(sortFn);
     } else {
       arr.sort((a, b) => a.name.localeCompare(b.name));
     }
     return arr;
-  }, [foods, q, activeCat, activeSubcat, activeFilters]);
+  }, [foods, q, activeCat, activeSubcat, activeSort]);
 
   function openContext(foodId, e) { e.stopPropagation(); setContextCard(prev => prev === foodId ? null : foodId); setQuickPick(null); }
   function openQuickPick(foodId) { setQuickPick(foodId); setContextCard(null); }
@@ -1987,41 +1984,33 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
         </div>
       )}
 
-      {/* ── Nutrient Filter row ── */}
+      {/* ── Sort row ── */}
       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-        {/* Filter toggle button */}
         <button onClick={()=>setShowFilterPanel(s=>!s)} style={{
           display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",
           borderRadius:14,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"system-ui,sans-serif",flexShrink:0,
-          border:activeFilters.size>0?"1.5px solid "+T.tc:"1px solid "+T.lineS,
-          background:activeFilters.size>0?T.tcSoft:"transparent",
-          color:activeFilters.size>0?T.tc:T.soft,
-        }}>
-          <span>⚡</span> Filter{activeFilters.size>0?` (${activeFilters.size})`:""}
-        </button>
-        {/* Active filter chips */}
-        {NUTRIENT_FILTERS.filter(flt=>activeFilters.has(flt.id)).map(flt=>(
-          <span key={flt.id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,background:T.tcSoft,color:T.tc,padding:"3px 8px",borderRadius:10,border:"1px solid "+T.tc+"44"}}>
-            {flt.emoji} {flt.label}
-            <button onClick={()=>setActiveFilters(prev=>{const n=new Set(prev);n.delete(flt.id);return n;})}
-              style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.tc,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
-          </span>
-        ))}
-        {activeFilters.size>0&&<button onClick={()=>setActiveFilters(new Set())} style={{fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0,fontWeight:600}}>Clear all</button>}
+          border:activeSort?"1.5px solid "+T.tc:"1px solid "+T.lineS,
+          background:activeSort?T.tcSoft:"transparent",color:activeSort?T.tc:T.soft,
+        }}><span>↕</span> Sort by</button>
+        {/* Active sort chip */}
+        {activeSort&&(()=>{const flt=NUTRIENT_FILTERS.find(f=>f.id===activeSort);return flt?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,background:T.tcSoft,color:T.tc,padding:"3px 8px",borderRadius:10,border:"1px solid "+T.tc+"44"}}>
+          {flt.emoji} {flt.label}
+          <button onClick={()=>setActiveSort(null)} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.tc,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
+        </span>:null;})()}
       </div>
-      {/* Filter dropdown panel */}
+      {/* Sort dropdown panel */}
       {showFilterPanel&&<div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:12,padding:"10px 12px",marginBottom:10,display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
-        <span style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:"uppercase",letterSpacing:"0.04em",marginRight:4}}>Show only:</span>
+        <span style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:"uppercase",letterSpacing:"0.04em",marginRight:4}}>Sort by:</span>
         {NUTRIENT_FILTERS.map(flt=>{
-          const on=activeFilters.has(flt.id);
-          return <button key={flt.id} onClick={()=>setActiveFilters(prev=>{const n=new Set(prev);on?n.delete(flt.id):n.add(flt.id);return n;})} style={{
+          const on=activeSort===flt.id;
+          return <button key={flt.id} onClick={()=>{setActiveSort(on?null:flt.id);setShowFilterPanel(false);}} style={{
             display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",borderRadius:14,cursor:"pointer",
             fontSize:12,fontWeight:600,fontFamily:"system-ui,sans-serif",
             border:on?"1.5px solid "+T.tc:"1px solid "+T.line,
             background:on?T.tcSoft:"transparent",color:on?T.tc:T.soft,
-          }}><span>{flt.emoji}</span>{flt.label}</button>;
+          }}><span>{flt.emoji}</span>{flt.label}{on&&<span style={{marginLeft:2}}>✓</span>}</button>;
         })}
-        <button onClick={()=>{setActiveFilters(new Set());setShowFilterPanel(false);}} style={{marginLeft:"auto",fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0}}>✕ Close</button>
+        {activeSort&&<button onClick={()=>{setActiveSort(null);setShowFilterPanel(false);}} style={{marginLeft:"auto",fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0}}>✕ Clear sort</button>}
       </div>}
 
       {foods.length === 0 ? <Empty icon="apple" title="Your pantry is empty" body="Tap 'Add food' to get started." />
