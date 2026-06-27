@@ -3042,7 +3042,7 @@ function ExCard({ex,catById,selected,contextOpen,quickPickOpen,onView,onContextT
 /* Quick-pick for workout: weight/reps for strength, duration for cardio */
 function ExQuickPick({ex,onSelect,onClose}){
   const isCardio=ex.type==="cardio";
-  const [weight,setWeight]=useState("135");
+  const [weight,setWeight]=useState("");
   const [reps,setReps]=useState("10");
   const [sets,setSets]=useState("3");
   const [duration,setDuration]=useState("30");
@@ -3995,77 +3995,108 @@ function AddTaskModal({task,initialCategory,onSave,onClose}){
 }
 
 /* ── Body Map ── simple SVG muscle diagram shown in Exercises when items are selected */
-const MUSCLE_MAP = {
-  front: [
-    {id:"chest",    label:"Chest",      tags:["push","chest","chest_u"],        cx:100,cy:102, rx:32,ry:24},
-    {id:"lshoulder",label:"L.Shoulder", tags:["push","shoulders_p","upper"],    cx:60, cy:82,  rx:16,ry:16},
-    {id:"rshoulder",label:"R.Shoulder", tags:["push","shoulders_p","upper"],    cx:140,cy:82,  rx:16,ry:16},
-    {id:"lbicep",   label:"L.Bicep",    tags:["pull","biceps"],                 cx:44, cy:120, rx:11,ry:22},
-    {id:"rbicep",   label:"R.Bicep",    tags:["pull","biceps"],                 cx:156,cy:120, rx:11,ry:22},
-    {id:"lforearm", label:"L.Forearm",  tags:["pull","forearms"],               cx:40, cy:162, rx:9, ry:20},
-    {id:"rforearm", label:"R.Forearm",  tags:["pull","forearms"],               cx:160,cy:162, rx:9, ry:20},
-    {id:"abs",      label:"Abs",        tags:["core","abs"],                    cx:100,cy:148, rx:26,ry:30},
-    {id:"obliques", label:"Obliques",   tags:["core","obliques"],               cx:100,cy:148, rx:38,ry:30},
-    {id:"lquad",    label:"L.Quad",     tags:["lower","quads"],                 cx:82, cy:218, rx:20,ry:38},
-    {id:"rquad",    label:"R.Quad",     tags:["lower","quads"],                 cx:118,cy:218, rx:20,ry:38},
-    {id:"lcalf",    label:"L.Calf",     tags:["lower","calves"],                cx:80, cy:286, rx:14,ry:28},
-    {id:"rcalf",    label:"R.Calf",     tags:["lower","calves"],                cx:120,cy:286, rx:14,ry:28},
-  ],
-  back: [
-    {id:"lats",     label:"Back/Lats",  tags:["pull","back"],                   cx:100,cy:105, rx:36,ry:28},
-    {id:"lshouldB", label:"L.Shoulder", tags:["push","shoulders_p","upper"],    cx:60, cy:82,  rx:16,ry:16},
-    {id:"rshouldB", label:"R.Shoulder", tags:["push","shoulders_p","upper"],    cx:140,cy:82,  rx:16,ry:16},
-    {id:"ltricep",  label:"L.Tricep",   tags:["push","triceps"],                cx:44, cy:120, rx:11,ry:22},
-    {id:"rtricep",  label:"R.Tricep",   tags:["push","triceps"],                cx:156,cy:120, rx:11,ry:22},
-    {id:"lforearmB",label:"L.Forearm",  tags:["pull","forearms"],               cx:40, cy:162, rx:9, ry:20},
-    {id:"rforearmB",label:"R.Forearm",  tags:["pull","forearms"],               cx:160,cy:162, rx:9, ry:20},
-    {id:"glutes",   label:"Glutes",     tags:["lower","glutes"],                cx:100,cy:178, rx:32,ry:22},
-    {id:"lhamstring",label:"L.Hamstring",tags:["lower","hamstrings"],           cx:82, cy:220, rx:20,ry:36},
-    {id:"rhamstring",label:"R.Hamstring",tags:["lower","hamstrings"],           cx:118,cy:220, rx:20,ry:36},
-    {id:"lcalfB",   label:"L.Calf",     tags:["lower","calves"],                cx:80, cy:284, rx:14,ry:28},
-    {id:"rcalfB",   label:"R.Calf",     tags:["lower","calves"],                cx:120,cy:284, rx:14,ry:28},
-  ],
-};
+/* Muscle data keyed to 100×270 viewBox used in BodyMap */
+const MUSCLE_FRONT = [
+  {id:"lpec",      label:"Chest",       tags:["push","chest","chest_u"],           cx:36,cy:68, rx:14,ry:14},
+  {id:"rpec",      label:"Chest",       tags:["push","chest","chest_u"],           cx:64,cy:68, rx:14,ry:14},
+  {id:"lshould",   label:"Shoulder",    tags:["push","shoulders_p","upper","shoulders_u"], cx:18,cy:50, rx:12,ry:10},
+  {id:"rshould",   label:"Shoulder",    tags:["push","shoulders_p","upper","shoulders_u"], cx:82,cy:50, rx:12,ry:10},
+  {id:"lbicep",    label:"Biceps",      tags:["pull","biceps"],                    cx:12,cy:82, rx:7, ry:17},
+  {id:"rbicep",    label:"Biceps",      tags:["pull","biceps"],                    cx:88,cy:82, rx:7, ry:17},
+  {id:"lforearm",  label:"Forearms",    tags:["pull","forearms"],                  cx:11,cy:118,rx:6, ry:14},
+  {id:"rforearm",  label:"Forearms",    tags:["pull","forearms"],                  cx:89,cy:118,rx:6, ry:14},
+  {id:"abs1l",     label:"Abs",         tags:["core","abs"],                       cx:43,cy:98, rx:8, ry:7},
+  {id:"abs1r",     label:"Abs",         tags:["core","abs"],                       cx:57,cy:98, rx:8, ry:7},
+  {id:"abs2l",     label:"Abs",         tags:["core","abs"],                       cx:43,cy:112,rx:8, ry:7},
+  {id:"abs2r",     label:"Abs",         tags:["core","abs"],                       cx:57,cy:112,rx:8, ry:7},
+  {id:"abs3l",     label:"Abs",         tags:["core","abs"],                       cx:43,cy:126,rx:8, ry:7},
+  {id:"abs3r",     label:"Abs",         tags:["core","abs"],                       cx:57,cy:126,rx:8, ry:7},
+  {id:"loblique",  label:"Obliques",    tags:["core","obliques"],                  cx:27,cy:115,rx:9, ry:18},
+  {id:"roblique",  label:"Obliques",    tags:["core","obliques"],                  cx:73,cy:115,rx:9, ry:18},
+  {id:"lquad",     label:"Quads",       tags:["lower","quads"],                    cx:36,cy:192,rx:13,ry:24},
+  {id:"rquad",     label:"Quads",       tags:["lower","quads"],                    cx:64,cy:192,rx:13,ry:24},
+  {id:"lcalf_f",   label:"Calves",      tags:["lower","calves"],                   cx:35,cy:245,rx:9, ry:18},
+  {id:"rcalf_f",   label:"Calves",      tags:["lower","calves"],                   cx:65,cy:245,rx:9, ry:18},
+];
+const MUSCLE_BACK = [
+  {id:"ltrap",     label:"Traps",       tags:["pull","back"],                      cx:39,cy:52, rx:14,ry:10},
+  {id:"rtrap",     label:"Traps",       tags:["pull","back"],                      cx:61,cy:52, rx:14,ry:10},
+  {id:"llat",      label:"Lats",        tags:["pull","back"],                      cx:29,cy:90, rx:11,ry:22},
+  {id:"rlat",      label:"Lats",        tags:["pull","back"],                      cx:71,cy:90, rx:11,ry:22},
+  {id:"lshould_b", label:"Shoulder",    tags:["push","shoulders_p","upper","shoulders_u"], cx:18,cy:50, rx:12,ry:10},
+  {id:"rshould_b", label:"Shoulder",    tags:["push","shoulders_p","upper","shoulders_u"], cx:82,cy:50, rx:12,ry:10},
+  {id:"ltricep",   label:"Triceps",     tags:["push","triceps"],                   cx:12,cy:82, rx:7, ry:17},
+  {id:"rtricep",   label:"Triceps",     tags:["push","triceps"],                   cx:88,cy:82, rx:7, ry:17},
+  {id:"lforearm_b",label:"Forearms",    tags:["pull","forearms"],                  cx:11,cy:118,rx:6, ry:14},
+  {id:"rforearm_b",label:"Forearms",    tags:["pull","forearms"],                  cx:89,cy:118,rx:6, ry:14},
+  {id:"llowerback",label:"Lower Back",  tags:["pull","back"],                      cx:50,cy:124,rx:14,ry:12},
+  {id:"lglute",    label:"Glutes",      tags:["lower","glutes"],                   cx:37,cy:158,rx:14,ry:14},
+  {id:"rglute",    label:"Glutes",      tags:["lower","glutes"],                   cx:63,cy:158,rx:14,ry:14},
+  {id:"lham",      label:"Hamstrings",  tags:["lower","hamstrings"],               cx:36,cy:192,rx:13,ry:24},
+  {id:"rham",      label:"Hamstrings",  tags:["lower","hamstrings"],               cx:64,cy:192,rx:13,ry:24},
+  {id:"lcalf_b",   label:"Calves",      tags:["lower","calves"],                   cx:35,cy:245,rx:9, ry:18},
+  {id:"rcalf_b",   label:"Calves",      tags:["lower","calves"],                   cx:65,cy:245,rx:9, ry:18},
+];
 
 function BodyMap({selectedTags}){
-  const [view,setView]=useState("front");
-  const muscles=MUSCLE_MAP[view];
   const activeTags=new Set(selectedTags);
+  function isActive(m){ return m.tags.some(t=>activeTags.has(t)); }
 
-  function isActive(muscle){
-    return muscle.tags.some(t=>activeTags.has(t));
+  // Unique active muscle names for legend
+  const activeLabels=[...new Set([...MUSCLE_FRONT,...MUSCLE_BACK].filter(isActive).map(m=>m.label))];
+
+  function Side({muscles,label}){
+    return <div style={{flex:1,minWidth:0}}>
+      <p style={{fontSize:9,fontWeight:800,color:T.faint,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"center",margin:"0 0 4px"}}>{label}</p>
+      <svg viewBox="0 0 100 270" style={{width:"100%",display:"block"}}>
+        {/* Silhouette */}
+        <ellipse cx="50" cy="18" rx="14" ry="15" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <rect x="44" y="31" width="12" height="10" rx="4" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <path d="M26,40 C16,50 15,75 17,105 C18,120 22,135 24,148 L76,148 C78,135 82,120 83,105 C85,75 84,50 74,40 Z"
+          fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Shoulders caps */}
+        <ellipse cx="18" cy="50" rx="14" ry="11" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <ellipse cx="82" cy="50" rx="14" ry="11" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Upper arms */}
+        <rect x="6" y="59" width="14" height="44" rx="7" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <rect x="80" y="59" width="14" height="44" rx="7" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Forearms */}
+        <rect x="7" y="105" width="12" height="36" rx="6" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <rect x="81" y="105" width="12" height="36" rx="6" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Hips */}
+        <rect x="24" y="146" width="52" height="22" rx="10" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Upper legs */}
+        <rect x="26" y="165" width="20" height="56" rx="10" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <rect x="54" y="165" width="20" height="56" rx="10" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Lower legs */}
+        <rect x="27" y="223" width="17" height="44" rx="8" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        <rect x="56" y="223" width="17" height="44" rx="8" fill={T.cream} stroke={T.lineS} strokeWidth="1.5"/>
+        {/* Feet */}
+        <ellipse cx="36" cy="268" rx="11" ry="5" fill={T.cream} stroke={T.lineS} strokeWidth="1"/>
+        <ellipse cx="64" cy="268" rx="11" ry="5" fill={T.cream} stroke={T.lineS} strokeWidth="1"/>
+
+        {/* Muscle overlays */}
+        {muscles.map(m=>{
+          const on=isActive(m);
+          return <ellipse key={m.id} cx={m.cx} cy={m.cy} rx={m.rx} ry={m.ry}
+            fill={on?T.tc:T.line} fillOpacity={on?0.65:0.35}
+            stroke={on?T.tc:T.lineS} strokeWidth={on?"1.5":"0.8"} strokeOpacity={on?0.9:0.4}/>;
+        })}
+      </svg>
+    </div>;
   }
 
   return <div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-      <span style={{fontSize:12,fontWeight:700,color:T.soft,textTransform:"uppercase",letterSpacing:"0.04em"}}>Muscles worked</span>
-      <div style={{display:"flex",gap:4}}>
-        {["front","back"].map(v=><button key={v} onClick={()=>setView(v)} style={{
-          padding:"4px 10px",borderRadius:7,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",
-          background:view===v?T.sageD:"transparent",color:view===v?"#FBF7EE":T.soft,fontFamily:"system-ui,sans-serif",
-        }}>{v==="front"?"Front":"Back"}</button>)}
-      </div>
+    <p style={{fontSize:11,fontWeight:700,color:T.soft,textTransform:"uppercase",letterSpacing:"0.04em",margin:"0 0 8px"}}>Muscles worked</p>
+    <div style={{display:"flex",gap:8}}>
+      <Side muscles={MUSCLE_FRONT} label="Front"/>
+      <Side muscles={MUSCLE_BACK}  label="Back"/>
     </div>
-    <svg viewBox="0 0 200 320" style={{width:"100%",maxWidth:220,display:"block",margin:"0 auto"}}>
-      {/* body silhouette */}
-      <ellipse cx="100" cy="30" rx="22" ry="24" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="88" y="52" width="24" height="14" rx="5" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="62" y="64" width="76" height="96" rx="12" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="36" y="70" width="26" height="96" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="138" y="70" width="26" height="96" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="64" y="158" width="72" height="30" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="64" y="184" width="32" height="80" rx="12" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="104" y="184" width="32" height="80" rx="12" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="66" y="260" width="28" height="58" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      <rect x="106" y="260" width="28" height="58" rx="10" fill={T.line} stroke={T.lineS} strokeWidth="1.5"/>
-      {/* muscle overlays */}
-      {muscles.map(m=>{
-        const active=isActive(m);
-        return active?<ellipse key={m.id} cx={m.cx} cy={m.cy} rx={m.rx} ry={m.ry}
-          fill={T.tc} fillOpacity="0.55" stroke={T.tc} strokeWidth="1.5" strokeOpacity="0.8"/>:null;
-      })}
-    </svg>
-    {selectedTags.length===0&&<p style={{textAlign:"center",fontSize:11,color:T.faint,margin:"6px 0 0"}}>Select exercises to see muscles highlighted</p>}
+    {activeLabels.length>0
+      ?<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:10}}>
+          {activeLabels.map(n=><span key={n} style={{fontSize:10,fontWeight:700,background:T.tcSoft,color:T.tc,padding:"2px 8px",borderRadius:4}}>{n}</span>)}
+        </div>
+      :<p style={{textAlign:"center",fontSize:11,color:T.faint,margin:"8px 0 0"}}>Select exercises to highlight muscles</p>}
   </div>;
 }
 
