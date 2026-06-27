@@ -2316,6 +2316,7 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
     setBQuery(""); bQueryRef.current?.focus();
   }
   function bRemove(id){setBItems(prev=>prev.filter(b=>b.food.id!==id));}
+  function bUpdate(id,amount){setBItems(prev=>prev.map(b=>b.food.id===id?{...b,amount:Math.max(b.unit==="unit"?1:b.unit==="tsp"||b.unit==="tbsp"?0.5:5, amount)}:b));}
   function bCreate(){
     const ings=bItems.map(b=>({foodId:b.food.id,name:b.food.name,emoji:b.food.emoji,
       image:b.food.image,nutrition:b.food.nutrition,amount:b.amount,unit:b.unit,cookMethod:""}));
@@ -2389,16 +2390,24 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
                       :<span style={{fontSize:22}}>{sel.food.emoji||"🍽"}</span>}
                   </div>
                 </div>
-                {/* Name + nutrition */}
-                <div style={{padding:"4px 8px",background:T.raised,minWidth:0}}>
-                  <p style={{fontWeight:700,fontSize:12,margin:"0 0 1px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:110}}>{sel.food.name}</p>
-                  <p style={{fontSize:10,color:T.faint,margin:0,fontFamily:"monospace"}}>
-                    {fmtAmt(sel.amount,sel.unit,n)}{" · "}<b style={{color:T.ink}}>{cal}</b>{" cal"}
-                  </p>
+                {/* Name + quantity controls + cal */}
+                <div style={{padding:"5px 8px",background:T.raised,minWidth:0}}>
+                  <p style={{fontWeight:700,fontSize:12,margin:"0 0 4px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:120}}>{sel.food.name}</p>
+                  {(()=>{
+                    const step=sel.unit==="unit"?1:sel.unit==="tsp"||sel.unit==="tbsp"?0.5:10;
+                    const unitLabel=sel.unit==="unit"?"ct":sel.unit;
+                    const btnS={width:20,height:20,borderRadius:5,border:"1px solid "+T.lineS,background:T.cream,cursor:"pointer",fontSize:14,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,color:T.ink,fontWeight:700,flexShrink:0,fontFamily:"system-ui,sans-serif"};
+                    return <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <button style={btnS} onClick={e=>{e.stopPropagation();bUpdate(sel.food.id,rnd(sel.amount-step,1));}}>−</button>
+                      <span style={{fontFamily:"monospace",fontSize:11,fontWeight:700,color:T.ink,minWidth:20,textAlign:"center"}}>{sel.amount}</span>
+                      <button style={btnS} onClick={e=>{e.stopPropagation();bUpdate(sel.food.id,rnd(sel.amount+step,1));}}>+</button>
+                      <span style={{fontSize:10,color:T.faint,marginLeft:2}}>{unitLabel} · <b style={{color:T.ink}}>{cal}</b> cal</span>
+                    </div>;
+                  })()}
                 </div>
                 <button onClick={()=>bRemove(sel.food.id)} style={{
-                  width:26,height:"100%",border:"none",background:T.raised,
-                  color:T.faint,cursor:"pointer",fontSize:16,flexShrink:0,
+                  width:24,height:"100%",border:"none",background:T.raised,
+                  color:T.faint,cursor:"pointer",fontSize:15,flexShrink:0,
                   borderLeft:"1px solid "+T.line,display:"flex",alignItems:"center",justifyContent:"center",
                 }}>×</button>
               </div>;
