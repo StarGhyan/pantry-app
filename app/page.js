@@ -499,7 +499,16 @@ const COOK_METHODS_MAP = {
 };
 
 /* Count-based portions: 1 egg = 50g, 1 carrot = 60g, etc.
-   countLabel = what to call one unit; countGrams = grams per one unit */
+   countLabel = what to call one unit; countGrams = medium/default grams per one unit */
+/* Nutrient filters for the food browser — values are per 100g */
+const NUTRIENT_FILTERS = [
+  {id:"hiprotein", label:"High Protein", emoji:"💪", test: n => (n.protein||0) >= 15},
+  {id:"lowcal",    label:"Low Calorie",  emoji:"🔥", test: n => (n.cal||0) <= 60},
+  {id:"hifiber",   label:"High Fiber",   emoji:"🌾", test: n => (n.fiber||0) >= 3},
+  {id:"lowcarb",   label:"Low Carb",     emoji:"🥑", test: n => (n.carbs||0) <= 5},
+  {id:"hiprotein2",label:"Very High Prot",emoji:"⚡",test: n => (n.protein||0) >= 25},
+];
+
 /* Universal cooking methods — always available as options in the food editor */
 const COMMON_COOK_METHODS = [
   "Raw","Cooked","Boiled","Steamed","Baked","Grilled","Roasted","Fried",
@@ -510,29 +519,35 @@ const COMMON_COOK_METHODS = [
 
 const COUNT_LABELS = {
   "egg":                   {label:"egg",       grams:50},
-  "tomato":                {label:"tomato",    grams:120},
-  "onion":                 {label:"onion",     grams:80},
-  "carrot":                {label:"carrot",    grams:60},
-  "bell pepper":           {label:"pepper",    grams:120},
-  "jalapeño":              {label:"jalapeño",  grams:45},
-  "cucumber":              {label:"cucumber",  grams:300},
-  "zucchini":              {label:"zucchini",  grams:200},
+  "tomato":                {label:"tomato",    grams:120, sizes:{small:80,medium:120,large:180}},
+  "onion":                 {label:"onion",     grams:80, sizes:{small:55,medium:80,large:120}},
+  "carrot":                {label:"carrot",    grams:60, sizes:{small:40,medium:60,large:90}},
+  "bell pepper":           {label:"pepper",    grams:120, sizes:{small:90,medium:120,large:170}},
+  "jalapeño":              {label:"jalapeño",  grams:45, sizes:{small:25,medium:45,large:60}},
+  "cucumber":              {label:"cucumber",  grams:300, sizes:{small:200,medium:300,large:400}},
+  "zucchini":              {label:"zucchini",  grams:200, sizes:{small:140,medium:200,large:280}},
   "garlic":                {label:"clove",     grams:6},
-  "mushroom":              {label:"mushroom",  grams:15},
-  "sweet potato":          {label:"potato",    grams:130},
-  "yellow potato":         {label:"potato",    grams:170},
-  "avocado":               {label:"avocado",   grams:200},
-  "banana":                {label:"banana",    grams:120},
-  "apple":                 {label:"apple",     grams:180},
-  "orange":                {label:"orange",    grams:130},
-  "lemon":                 {label:"lemon",     grams:60},
-  "pear":                  {label:"pear",      grams:180},
-  "mango":                 {label:"mango",     grams:300},
+  "mushroom":              {label:"mushroom",  grams:15, sizes:{small:10,medium:15,large:25}},
+  "sweet potato":          {label:"potato",    grams:130, sizes:{small:90,medium:130,large:220}},
+  "yellow potato":         {label:"potato",    grams:170, sizes:{small:120,medium:170,large:260}},
+  "avocado":               {label:"avocado",   grams:200, sizes:{small:140,medium:200,large:280}},
+  "banana":                {label:"banana",    grams:120, sizes:{small:90,medium:120,large:160}},
+  "apple":                 {label:"apple",     grams:180, sizes:{small:140,medium:180,large:240}},
+  "orange":                {label:"orange",    grams:130, sizes:{small:90,medium:130,large:180}},
+  "lemon":                 {label:"lemon",     grams:60, sizes:{small:45,medium:60,large:85}},
+  "pear":                  {label:"pear",      grams:180, sizes:{small:140,medium:180,large:230}},
+  "mango":                 {label:"mango",     grams:300, sizes:{small:220,medium:300,large:420}},
+  "cabbage":               {label:"head",      grams:900, sizes:{small:600,medium:900,large:1300}},
+  "cauliflower":           {label:"head",      grams:700, sizes:{small:450,medium:700,large:1000}},
+  "lettuce":               {label:"head",      grams:500, sizes:{small:300,medium:500,large:750}},
+  "celery":                {label:"stalk",     grams:80, sizes:{small:55,medium:80,large:120}},
+  "asparagus":             {label:"bunch",     grams:250, sizes:{small:180,medium:250,large:340}},
+  "green beans":           {label:"handful",   grams:85, sizes:{small:60,medium:85,large:120}},
+  "broccoli":              {label:"head",      grams:300, sizes:{small:220,medium:300,large:420}},
   "chicken - breast":      {label:"breast",    grams:150},
   "chicken - thigh":       {label:"thigh",     grams:130},
   "chicken - wings":       {label:"wing",      grams:45},
   "chicken - drumstick":   {label:"drumstick", grams:110},
-  "egg":                   {label:"egg",       grams:50},
   "whey protein powder":   {label:"scoop",     grams:32},
   "plant protein powder":  {label:"scoop",     grams:32},
   "casein protein powder": {label:"scoop",     grams:32},
@@ -891,11 +906,11 @@ const W_CATEGORIES = [
   { id: "sport",  name: "Sport",      colorId: "p7" },
 ];
 const W_SUBCATS = {
-  push:[{id:"chest",label:"Chest",emoji:"🫁"},{id:"shoulders_p",label:"Shoulders",emoji:"🏋️"},{id:"triceps",label:"Triceps",emoji:"💪"}],
-  pull:[{id:"back",label:"Back",emoji:"🔙"},{id:"biceps",label:"Biceps",emoji:"💪"},{id:"forearms",label:"Forearms",emoji:"🤲"}],
+  push:[{id:"chest",label:"Chest",emoji:"💪"},{id:"shoulders_p",label:"Shoulders",emoji:"🏋️"},{id:"triceps",label:"Triceps",emoji:"💪"}],
+  pull:[{id:"back",label:"Back",emoji:"🧍"},{id:"biceps",label:"Biceps",emoji:"💪"},{id:"forearms",label:"Forearms",emoji:"🤲"}],
   lower:[{id:"quads",label:"Quads",emoji:"🦵"},{id:"hamstrings",label:"Hamstrings",emoji:"🦵"},{id:"glutes",label:"Glutes",emoji:"🍑"},{id:"calves",label:"Calves",emoji:"🦶"}],
-  upper:[{id:"shoulders_u",label:"Shoulders",emoji:"🏋️"},{id:"arms",label:"Arms",emoji:"💪"},{id:"chest_u",label:"Chest",emoji:"🫁"}],
-  core:[{id:"abs",label:"Abs",emoji:"🎯"},{id:"obliques",label:"Obliques",emoji:"🔄"}],
+  upper:[{id:"shoulders_u",label:"Shoulders",emoji:"🏋️"},{id:"arms",label:"Arms",emoji:"💪"},{id:"chest_u",label:"Chest",emoji:"💪"}],
+  core:[{id:"abs",label:"Abs",emoji:"🎯"},{id:"obliques",label:"Obliques",emoji:"↔️"}],
   cardio:[{id:"machine",label:"Gym machines",emoji:"🏃"},{id:"outdoor",label:"Outdoor",emoji:"🌳"},{id:"hiit",label:"HIIT",emoji:"🔥"}],
   sport:[{id:"tennis",label:"Tennis",emoji:"🎾"},{id:"basketball",label:"Basketball",emoji:"🏀"},{id:"football",label:"Football",emoji:"⚽"},{id:"swimming",label:"Swimming",emoji:"🏊"}],
 };
@@ -939,8 +954,136 @@ function uid(p) { return p + "_" + (++_id) + "_" + Math.random().toString(36).sl
 function rnd(n, d=0) { const f=Math.pow(10,d); return Math.round((Number(n)+Number.EPSILON)*f)/f; }
 
 /* Convert any portion unit to grams/ml for scaling against per-100g DB values */
-const UNIT_TO_G = { g:1, ml:1, oz:28.35, lb:453.6, tsp:4.2, tbsp:12.6 };
+const UNIT_TO_G = { g:1, ml:1, oz:28.35, lb:453.6, tsp:4.2, tbsp:12.6, cup:240 };
 function portionToG(amount, unit) { return (Number(amount)||0) * (UNIT_TO_G[unit] || 1); }
+function countSizeKey(size) {
+  return size === "small" || size === "large" ? size : "medium";
+}
+function countGramsFor(nutrition, size = "medium") {
+  const key = countSizeKey(size);
+  if (nutrition?.countSizes?.[key]) return Number(nutrition.countSizes[key]) || Number(nutrition.countGrams) || 0;
+  return Number(nutrition?.countGrams) || 0;
+}
+function hasCountSizes(nutrition) {
+  return !!(nutrition?.countSizes?.small || nutrition?.countSizes?.medium || nutrition?.countSizes?.large);
+}
+function amountToG(amount, unit, nutrition, countSize = "medium") {
+  if (unit === "unit" && nutrition?.countGrams) return (Number(amount)||0) * countGramsFor(nutrition, countSize);
+  return portionToG(amount, unit);
+}
+function convertFoodAmount(amount, fromUnit, toUnit, nutrition, countSize = "medium") {
+  const grams = amountToG(amount, fromUnit, nutrition, countSize);
+  const divisor = toUnit === "unit" && nutrition?.countGrams
+    ? countGramsFor(nutrition, countSize)
+    : (UNIT_TO_G[toUnit] || 1);
+  const decimals = (toUnit === "g" || toUnit === "ml") ? 1
+    : toUnit === "unit" ? 2
+    : toUnit === "lb" ? 5
+    : 4;
+  return rnd(grams / divisor, decimals);
+}
+
+function minAmountForUnit(unit) {
+  if (unit === "lb") return 0.01;
+  return 0.1;
+}
+
+function stepAmountForUnit(unit) {
+  if (unit === "lb") return 0.05;
+  if (unit === "oz") return 0.25;
+  if (unit === "tsp" || unit === "tbsp" || unit === "unit") return 0.5;
+  if (unit === "g" || unit === "ml") return 5;
+  return 0.5;
+}
+
+function sanitizeAmountInput(value) {
+  if (value == null) return "";
+  return String(value).replace(",", ".");
+}
+
+function coerceAmount(value, unit, fallback = 0) {
+  const num = Number(sanitizeAmountInput(value));
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(minAmountForUnit(unit), rnd(num, unit === "lb" ? 2 : 4));
+}
+function buildCountNutrition(nutrition, countInfo) {
+  return countInfo
+    ? {
+        ...nutrition,
+        countLabel: countInfo.label,
+        countGrams: countInfo.grams,
+        countSizes: countInfo.sizes || null,
+      }
+    : { ...nutrition };
+}
+function sizeLabel(size) {
+  return countSizeKey(size);
+}
+function normalizeOpenFoodFactsProduct(product) {
+  if (!product) return null;
+  const nm = product.nutriments || {};
+  const servingG = parseFloat(product.serving_quantity) || 100;
+  function g100(key) {
+    const v = parseFloat(nm[key + "_100g"]);
+    if (!isNaN(v) && v > 0) return v;
+    const vs = parseFloat(nm[key + "_serving"]);
+    if (!isNaN(vs) && vs > 0 && servingG > 0) return vs / servingG * 100;
+    const vp = parseFloat(nm[key]);
+    return (!isNaN(vp) && vp > 0) ? vp : 0;
+  }
+  function cal100() {
+    const k = g100("energy-kcal");
+    if (k > 0) return Math.round(k);
+    const j = g100("energy");
+    return j > 0 ? Math.round(j / 4.184) : 0;
+  }
+  const brand = (product.brands || "").split(",")[0].trim();
+  const rawName = product.product_name || product.product_name_en || product.product_name_fr || "";
+  const name = brand && rawName && !rawName.toLowerCase().includes(brand.toLowerCase())
+    ? `${brand} ${rawName}`
+    : (rawName || brand || "");
+  if (!name) return null;
+  return {
+    name,
+    brand,
+    emoji: "📦",
+    image: product.image_front_url || product.image_front_small_url || product.image_url || null,
+    nutrition: {
+      cal: cal100(),
+      protein: rnd(g100("proteins"), 1),
+      carbs: rnd(g100("carbohydrates"), 1),
+      fat: rnd(g100("fat"), 1),
+      fiber: rnd(g100("fiber"), 1),
+      sugar: rnd(g100("sugars"), 1),
+      unit: "g",
+      portion: 100,
+    }
+  };
+}
+
+function searchLocalProductFoods(foods, query){
+  const q=(query||"").trim().toLowerCase();
+  if(q.length<2) return [];
+  return (foods||[])
+    .filter(food=>{
+      const name=(food.name||"").toLowerCase();
+      const tags=(food.tags||[]).join(" ").toLowerCase();
+      return name.includes(q)||tags.includes(q);
+    })
+    .slice(0,8)
+    .map(food=>({
+      name: food.name,
+      brand: food.brand || "Saved in your app",
+      emoji: food.emoji || "📦",
+      image: food.image || null,
+      nutrition: {
+        ...(food.nutrition||emptyN()),
+        unit: food.nutrition?.unit || "g",
+        portion: Number(food.nutrition?.portion) || 100,
+      },
+      source: "local",
+    }));
+}
 
 function emptyN() { return {cal:"",protein:"",carbs:"",fat:"",fiber:"",sugar:"",unit:"g",portion:100}; }
 function scale(n, amt) {
@@ -951,7 +1094,7 @@ function scale(n, amt) {
 function scaleIng(ing) {
   let grams;
   if (ing.unit === "unit" && ing.nutrition?.countGrams) {
-    grams = (Number(ing.amount)||0) * Number(ing.nutrition.countGrams);
+    grams = (Number(ing.amount)||0) * countGramsFor(ing.nutrition, ing.countSize);
   } else {
     grams = portionToG(Number(ing.amount)||0, ing.unit || ing.nutrition.unit || "g");
   }
@@ -964,17 +1107,18 @@ function scaleIng(ing) {
 function portionLabel(n) {
   if (n?.countGrams) {
     const u = n.unit === "ml" ? "ml" : "g";
-    return `per 1 ct (${n.countGrams}${u})`;
+    return `per 1 ct (${countGramsFor(n)}${u})`;
   }
   return `per ${Number(n?.portion)||100}${n?.unit||"g"}`;
 }
 
 /* Display an ingredient amount: "2 ct (100g)" or "150g" */
-function fmtAmt(amount, unit, nutrition) {
+function fmtAmt(amount, unit, nutrition, countSize = "medium") {
   if (unit === "unit" && nutrition?.countGrams) {
     const n = Number(amount)||0;
-    const g = rnd(n * (Number(nutrition.countGrams)||100));
-    return `${n} ct (${g}g)`;
+    const size = sizeLabel(countSize);
+    const g = rnd(n * countGramsFor(nutrition, countSize));
+    return `${n} ct ${hasCountSizes(nutrition) ? size + " " : ""}(${g}g)`;
   }
   return `${amount}${unit}`;
 }
@@ -985,6 +1129,63 @@ function resolveIng(ing, foodsMap) {
   const live = foodsMap[ing.foodId];
   if (!live) return ing;
   return { ...ing, name: live.name, emoji: live.emoji, image: live.image, nutrition: live.nutrition, cookMethods: live.cookMethods||[] };
+}
+
+/* Friendly fallback artwork for items without uploaded photos. These are
+   intentionally emoji-based so they stay lightweight and match the app. */
+function recipeEmoji(recipe) {
+  if (recipe?.emoji) return recipe.emoji;
+  const text = `${recipe?.name||""} ${(recipe?.ingredients||[]).map(i=>i.name||"").join(" ")}`.toLowerCase();
+  if (text.includes("shakshuka")) return "🍳";
+  if (text.includes("overnight oat") || text.includes("oatmeal")) return "🥣";
+  if (text.includes("yogurt") && (text.includes("bowl") || text.includes("berry"))) return "🫐";
+  if (text.includes("avocado") && text.includes("toast")) return "🥑";
+  if (text.includes("salad")) return "🥗";
+  if (text.includes("salmon")) return "🐟";
+  if (text.includes("tuna")) return "🐟";
+  if (text.includes("chicken")) return "🍗";
+  if (text.includes("egg")) return "🍳";
+  if (text.includes("pasta") || text.includes("spaghetti")) return "🍝";
+  if (text.includes("rice")) return "🍚";
+  if (text.includes("soup") || text.includes("stew")) return "🍲";
+  if (text.includes("sandwich") || text.includes("toast")) return "🥪";
+  if (text.includes("smoothie") || text.includes("shake")) return "🥤";
+  return "🍽️";
+}
+
+function recipeAccentEmojis(recipe) {
+  const main = recipeEmoji(recipe);
+  return [...new Set((recipe?.ingredients||[]).map(i=>i.emoji).filter(e=>e&&e!==main))].slice(0,3);
+}
+
+function exerciseEmoji(exercise) {
+  if (!exercise) return "🏋️";
+  // Custom exercises keep the emoji chosen by the user.
+  if (!String(exercise.id||"").startsWith("wex_")) return exercise.emoji || (exercise.type==="cardio"?"🏃":"🏋️");
+  const legacyIcons=new Set(["🏋️","🫁","🔙","💀","🔝","🎯","🦵","🚶","🍑","🦶","🧱","🎡","🔄","🏔️","⏭️","🔥","💪","🤲","🔨"]);
+  if (exercise.emoji && !legacyIcons.has(exercise.emoji)) return exercise.emoji;
+  const n=(exercise.name||"").toLowerCase();
+  if (n.includes("treadmill") || n==="running" || n.includes("elliptical")) return "🏃";
+  if (n==="walking") return "🚶";
+  if (n.includes("bike") || n==="cycling") return "🚴";
+  if (n.includes("rowing") || n.includes(" row")) return "🚣";
+  if (n.includes("stair")) return "🪜";
+  if (n.includes("jump rope")) return "🪢";
+  if (n.includes("burpee")) return "🤸";
+  if (n.includes("pull-up") || n.includes("chin-up") || n.includes("mountain climber")) return "🧗";
+  if (n.includes("push-up") || n.includes("dip") || n.includes("curl") || n.includes("tricep")) return "💪";
+  if (n.includes("squat") || n.includes("lunge") || n.includes("leg ")) return "🦵";
+  if (n.includes("hip thrust") || n.includes("glute")) return "🍑";
+  if (n.includes("calf")) return "🦶";
+  if (n.includes("plank") || n.includes("crunch") || n.includes("russian twist")) return "🧘";
+  if (n.includes("woodchop")) return "🪓";
+  if (n.includes("ab wheel")) return "🎯";
+  if (n==="tennis") return "🎾";
+  if (n==="basketball") return "🏀";
+  if (n==="football") return "⚽";
+  if (n==="swimming") return "🏊";
+  if (n==="boxing") return "🥊";
+  return "🏋️";
 }
 
 function normK(s){return s.toLowerCase().replace(/[-_/]+/g," ").replace(/\s+/g," ").trim();}
@@ -1003,9 +1204,7 @@ function buildSeedFoods() {
     const nutrition = NDB[nk] || lookup(s.n) || emptyN();
     const cookMethods = COOK_METHODS_MAP[normK(s.n)] || COOK_METHODS_MAP[s.n.toLowerCase().trim()] || [];
     const countInfo = COUNT_LABELS[normK(s.n)] || COUNT_LABELS[s.n.toLowerCase().trim()] || null;
-    const enrichedNutrition = countInfo
-      ? { ...nutrition, countLabel: countInfo.label, countGrams: countInfo.grams }
-      : { ...nutrition };
+    const enrichedNutrition = buildCountNutrition(nutrition, countInfo);
     return { id: "seed_" + i, name: s.n, tags: s.t, emoji: s.e || "🍽", image: null, nutrition: enrichedNutrition, cookMethods, createdAt: now - i * 100 };
   });
 }
@@ -1090,6 +1289,22 @@ function Empty({icon,title,body}) {
     <div style={{fontSize:36,marginBottom:12,opacity:0.5}}>{icon}</div>
     <p style={{fontWeight:600,color:T.ink,margin:"0 0 6px",fontSize:15}}>{title}</p>
     <p style={{fontSize:13,margin:0}}>{body}</p>
+  </div>;
+}
+
+function EmojiArtwork({emoji="🍽️",accents=[],compact=false}) {
+  const shown=[...new Set(accents.filter(Boolean))].slice(0,3);
+  return <div aria-hidden="true" style={{width:"100%",height:"100%",position:"relative",overflow:"hidden",
+    display:"flex",alignItems:"center",justifyContent:"center",
+    background:"linear-gradient(145deg, #FBF7EE 0%, #EEE8D7 100%)"}}>
+    <div style={{position:"absolute",width:"72%",aspectRatio:"1",borderRadius:"50%",background:"rgba(255,255,255,0.58)",
+      boxShadow:"0 8px 24px rgba(71,62,39,0.08)"}}/>
+    <span style={{fontSize:compact?34:48,lineHeight:1,position:"relative",filter:"drop-shadow(0 5px 7px rgba(60,48,28,0.12))"}}>{emoji}</span>
+    {shown.length>0&&<div style={{position:"absolute",right:compact?6:10,bottom:compact?6:9,display:"flex",gap:3}}>
+      {shown.map((a,i)=><span key={`${a}-${i}`} style={{width:compact?22:27,height:compact?22:27,borderRadius:"50%",background:"rgba(255,255,255,0.9)",
+        border:"1px solid rgba(91,78,46,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:compact?12:15,
+        boxShadow:"0 2px 6px rgba(60,48,28,0.09)"}}>{a}</span>)}
+    </div>}
   </div>;
 }
 
@@ -1195,7 +1410,9 @@ function migrateStoredData() {
         if (!entry.cookMethods?.length && seed.cookMethods?.length)
           entry = { ...entry, cookMethods: seed.cookMethods };
         if (!entry.nutrition?.countLabel && seed.nutrition?.countLabel)
-          entry = { ...entry, nutrition: { ...entry.nutrition, countLabel: seed.nutrition.countLabel, countGrams: seed.nutrition.countGrams } };
+          entry = { ...entry, nutrition: { ...entry.nutrition, countLabel: seed.nutrition.countLabel, countGrams: seed.nutrition.countGrams, countSizes: seed.nutrition.countSizes || null } };
+        if (!entry.nutrition?.countSizes && seed.nutrition?.countSizes)
+          entry = { ...entry, nutrition: { ...entry.nutrition, countSizes: seed.nutrition.countSizes } };
       }
       seen.set(key, entry);
     }
@@ -1375,6 +1592,7 @@ export default function App() {
         nutrition: f.nutrition,
         amount: f._amt != null ? f._amt : (f.nutrition.portion || 100),
         unit: f._unit || f.nutrition.unit || "g",
+        countSize: f._countSize || "medium",
       }));
       setOpenRecipe({ id: uid("rec"), name: "", image: null, servings: 1, ingredients });
       setRecipeMode("edit"); setTab("recipes");
@@ -1496,6 +1714,7 @@ export default function App() {
           onNewRecipe={(ings) => { setOpenRecipe({id:uid("rec"),name:"",image:null,ingredients:ings}); setRecipeMode("edit"); setTab("recipes"); setAddToRecipeModal(null); }}/>}
 
         {tab==="recipes"&&<Recipes recipes={recipes} totals={totals} foods={foods} catById={catById}
+          onOpenFood={f=>{setOpenFood(f);setFoodMode("view");}}
           onNew={(ings=[])=>{setOpenRecipe({id:uid("rec"),name:"",image:null,servings:1,ingredients:ings});setRecipeMode("edit");}}
           onOpen={r=>{setOpenRecipe(r);setRecipeMode("view");}} onDelete={delRecipe} onDup={dupRecipe}/>}
 
@@ -1504,7 +1723,7 @@ export default function App() {
           onRemove={removeFromDay} onDup={dupToDay} onUpdateServings={updatePlanServings}
           onOpenRecipe={r=>{setOpenRecipe(r);setRecipeMode("view");}}/>}
 
-        {openFood&&<FoodModal food={openFood} mode={foodMode} cats={cats} catById={catById}
+        {openFood&&<FoodModal food={openFood} mode={foodMode} cats={cats} catById={catById} foods={foods}
           onAddCat={addCat} onClose={()=>setOpenFood(null)} onEdit={()=>setFoodMode("edit")}
           onSave={f=>{saveFood(f);setFoodMode("view");flash("Saved");}}
           onSaveClose={f=>{saveFood(f);setOpenFood(null);flash("Saved");}}
@@ -1518,6 +1737,7 @@ export default function App() {
 
         {openRecipe&&<RecipeModal recipe={openRecipe} mode={recipeMode} foods={foods}
           cats={cats} catById={catById} totals={totals}
+          onOpenFood={f=>{setOpenFood(f);setFoodMode("view");}}
           onClose={()=>setOpenRecipe(null)} onEdit={()=>setRecipeMode("edit")}
           onSave={r=>{saveRecipe(r);setOpenRecipe(r);setRecipeMode("view");flash("Saved");}}
           onSaveClose={r=>{saveRecipe(r);setOpenRecipe(null);flash("Saved");}}
@@ -1535,7 +1755,7 @@ export default function App() {
           onAdd={()=>{setOpenEx({id:uid("wex"),name:"",emoji:"🏋️",tags:[],image:null,type:"strength",met:5});setExMode("edit");}}
           onManageCats={()=>setShowWCatMgr(true)}
           onMakeRoutine={sels=>{
-            const rExs=sels.map(s=>{const isC=s.ex.type==="cardio";return{exerciseId:s.ex.id,name:s.ex.name,emoji:s.ex.emoji,
+            const rExs=sels.map(s=>{const isC=s.ex.type==="cardio";return{exerciseId:s.ex.id,name:s.ex.name,emoji:exerciseEmoji(s.ex),
               ...(isC?{duration:s.duration||30}:{sets:Array.from({length:s.sets||3},()=>({weight:s.weight||0,reps:s.reps||10}))}),};});
             setOpenRoutine({id:uid("rtn"),name:"",exercises:rExs,weightUnit:sels[0]&&sels[0].wUnit||"lb"});
             setRoutineMode("edit");setWTab("routines");
@@ -1634,9 +1854,11 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
   const [showAddSubcat, setShowAddSubcat] = useState(false);
   const [newSubcatLabel, setNewSubcatLabel] = useState("");
   const [newSubcatEmoji, setNewSubcatEmoji] = useState("🏷️");
+  const [activeFilters, setActiveFilters] = useState(new Set());
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const longPressTimer = useRef(null);
 
-  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); }, [activeCat]);
+  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); setActiveFilters(new Set()); setShowFilterPanel(false); }, [activeCat]);
   const selectedIds = useMemo(() => new Set(Object.keys(selections)), [selections]);
   const selectedList = useMemo(() => Object.values(selections), [selections]);
   // Merge built-in subcats with user-defined ones for the active category
@@ -1660,6 +1882,12 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
       }
       // Search filter
       if (searching && !nl.includes(ql)) return false;
+      // Nutrient filters (all must pass)
+      if (activeFilters.size > 0) {
+        const n = f.nutrition;
+        const pass = NUTRIENT_FILTERS.filter(flt=>activeFilters.has(flt.id)).every(flt=>flt.test(n));
+        if (!pass) return false;
+      }
       return true;
     });
 
@@ -1681,14 +1909,24 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
       arr.sort((a, b) => a.name.localeCompare(b.name));
     }
     return arr;
-  }, [foods, q, activeCat, activeSubcat]);
+  }, [foods, q, activeCat, activeSubcat, activeFilters]);
 
   function openContext(foodId, e) { e.stopPropagation(); setContextCard(prev => prev === foodId ? null : foodId); setQuickPick(null); }
   function openQuickPick(foodId) { setQuickPick(foodId); setContextCard(null); }
   function closePopups() { setContextCard(null); setQuickPick(null); }
-  function handleSelectFood(food, amount, unit) { setSelections(prev => ({ ...prev, [food.id]: { food, amount: Number(amount), unit } })); setQuickPick(null); setContextCard(null); }
+  function handleSelectFood(food, amount, unit, countSize = "medium") { setSelections(prev => ({ ...prev, [food.id]: { food, amount: Number(amount), unit, countSize } })); setQuickPick(null); setContextCard(null); }
   function deselectFood(foodId) { setSelections(prev => { const n = { ...prev }; delete n[foodId]; return n; }); }
-  function updateSelection(foodId, amount, unit) { setSelections(prev => prev[foodId] ? { ...prev, [foodId]: { ...prev[foodId], amount: Number(amount), unit } } : prev); }
+  function updateSelection(foodId, amount, unit, countSize) { setSelections(prev => prev[foodId] ? { ...prev, [foodId]: { ...prev[foodId], amount: Number(amount), unit, countSize: countSize || prev[foodId].countSize || "medium" } } : prev); }
+  function changeSelectionUnit(foodId, nextUnit) {
+    setSelections(prev => {
+      const current = prev[foodId]; if (!current) return prev;
+      const amount = convertFoodAmount(current.amount, current.unit, nextUnit, current.food.nutrition, current.countSize);
+      return { ...prev, [foodId]: { ...current, amount, unit: nextUnit } };
+    });
+  }
+  function changeSelectionCountSize(foodId, countSize) {
+    setSelections(prev => prev[foodId] ? { ...prev, [foodId]: { ...prev[foodId], countSize } } : prev);
+  }
   function clearAll() { setSelections({}); setTrayExpanded(false); }
   function startLongPress(food) { longPressTimer.current = setTimeout(() => openQuickPick(food.id), 500); }
   function cancelLongPress() { if (longPressTimer.current) clearTimeout(longPressTimer.current); }
@@ -1749,6 +1987,43 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
         </div>
       )}
 
+      {/* ── Nutrient Filter row ── */}
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+        {/* Filter toggle button */}
+        <button onClick={()=>setShowFilterPanel(s=>!s)} style={{
+          display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",
+          borderRadius:14,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"system-ui,sans-serif",flexShrink:0,
+          border:activeFilters.size>0?"1.5px solid "+T.tc:"1px solid "+T.lineS,
+          background:activeFilters.size>0?T.tcSoft:"transparent",
+          color:activeFilters.size>0?T.tc:T.soft,
+        }}>
+          <span>⚡</span> Filter{activeFilters.size>0?` (${activeFilters.size})`:""}
+        </button>
+        {/* Active filter chips */}
+        {NUTRIENT_FILTERS.filter(flt=>activeFilters.has(flt.id)).map(flt=>(
+          <span key={flt.id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,background:T.tcSoft,color:T.tc,padding:"3px 8px",borderRadius:10,border:"1px solid "+T.tc+"44"}}>
+            {flt.emoji} {flt.label}
+            <button onClick={()=>setActiveFilters(prev=>{const n=new Set(prev);n.delete(flt.id);return n;})}
+              style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.tc,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
+          </span>
+        ))}
+        {activeFilters.size>0&&<button onClick={()=>setActiveFilters(new Set())} style={{fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0,fontWeight:600}}>Clear all</button>}
+      </div>
+      {/* Filter dropdown panel */}
+      {showFilterPanel&&<div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:12,padding:"10px 12px",marginBottom:10,display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
+        <span style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:"uppercase",letterSpacing:"0.04em",marginRight:4}}>Show only:</span>
+        {NUTRIENT_FILTERS.map(flt=>{
+          const on=activeFilters.has(flt.id);
+          return <button key={flt.id} onClick={()=>setActiveFilters(prev=>{const n=new Set(prev);on?n.delete(flt.id):n.add(flt.id);return n;})} style={{
+            display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",borderRadius:14,cursor:"pointer",
+            fontSize:12,fontWeight:600,fontFamily:"system-ui,sans-serif",
+            border:on?"1.5px solid "+T.tc:"1px solid "+T.line,
+            background:on?T.tcSoft:"transparent",color:on?T.tc:T.soft,
+          }}><span>{flt.emoji}</span>{flt.label}</button>;
+        })}
+        <button onClick={()=>{setActiveFilters(new Set());setShowFilterPanel(false);}} style={{marginLeft:"auto",fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0}}>✕ Close</button>
+      </div>}
+
       {foods.length === 0 ? <Empty icon="apple" title="Your pantry is empty" body="Tap 'Add food' to get started." />
         : visible.length === 0 ? <Empty icon="search" title="No matches" body="Try a different search or category." />
         : <div className={showNutrition ? "food-grid-full" : "food-grid-compact"}>
@@ -1780,9 +2055,9 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
       {hasTray && <div style={{ height: trayExpanded ? "55vh" : 140 }} />}
       {hasTray && <SelectionTray selections={selectedList} expanded={trayExpanded}
         onToggleExpand={() => setTrayExpanded(s => !s)}
-        onUpdateAmount={updateSelection} onDeselect={deselectFood} onClear={clearAll}
-        onMakeRecipe={() => onMakeRecipe(selectedList.map(s => Object.assign({}, s.food, {_amt: s.amount, _unit: s.unit})), "new")}
-        onAddToRecipe={() => onMakeRecipe(selectedList.map(s => Object.assign({}, s.food, {_amt: s.amount, _unit: s.unit})), "add")}
+        onUpdateAmount={updateSelection} onChangeUnit={changeSelectionUnit} onChangeCountSize={changeSelectionCountSize} onDeselect={deselectFood} onClear={clearAll}
+        onMakeRecipe={() => onMakeRecipe(selectedList.map(s => Object.assign({}, s.food, {_amt: s.amount, _unit: s.unit, _countSize: s.countSize})), "new")}
+        onAddToRecipe={() => onMakeRecipe(selectedList.map(s => Object.assign({}, s.food, {_amt: s.amount, _unit: s.unit, _countSize: s.countSize})), "add")}
       />}
     </div>
   );
@@ -1813,13 +2088,17 @@ function QuickPickPopup({ food, onSelect, onClose }) {
   const defaultAmt  = hasCount ? 1 : (Number(n.portion) || 100);
   const [amt, setAmt] = useState(String(defaultAmt));
   const [unit, setUnit] = useState(defaultUnit);
+  const [countSize, setCountSize] = useState("medium");
 
-  const f = unit === "unit" && n.countGrams
-    ? (Number(amt)||defaultAmt) * Number(n.countGrams) / 100
-    : portionToG(Number(amt)||defaultAmt, unit) / 100;
+  const f = amountToG(Number(amt)||defaultAmt, unit, n, countSize) / 100;
+
+  function changeUnit(nextUnit) {
+    setAmt(String(convertFoodAmount(Number(amt)||defaultAmt, unit, nextUnit, n, countSize)));
+    setUnit(nextUnit);
+  }
 
   const amtLabel = unit === "unit" && n.countGrams
-    ? `${amt} ct = ${rnd((Number(amt)||0)*Number(n.countGrams))}g`
+    ? `${amt} ct${hasCountSizes(n) ? " " + sizeLabel(countSize) : ""} = ${rnd((Number(amt)||0)*countGramsFor(n, countSize))}g`
     : null;
 
   return (
@@ -1832,15 +2111,20 @@ function QuickPickPopup({ food, onSelect, onClose }) {
       {amtLabel && <p style={{fontSize:10,color:T.soft,margin:"0 0 8px",fontFamily:"monospace"}}>{amtLabel}</p>}
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         <input type="number" value={amt} onChange={e => setAmt(e.target.value)}
-          onKeyDown={e=>{if(e.key==="Enter") onSelect(amt||defaultAmt,unit);}}
+          onKeyDown={e=>{if(e.key==="Enter") onSelect(amt||defaultAmt,unit,countSize);}}
           style={IS({ width: 70, padding: "5px 8px", fontSize: 14, fontFamily: "monospace" })} autoFocus />
-        <select value={unit} onChange={e=>{setUnit(e.target.value);setAmt(e.target.value==="unit"?"1":String(Number(n.portion)||100));}} style={IS({ padding: "5px 6px", fontSize: 13, width: "auto" })}>
+        <select value={unit} onChange={e=>changeUnit(e.target.value)} style={IS({ padding: "5px 6px", fontSize: 13, width: "auto" })}>
           {hasCount && <option value="unit">ct</option>}
           <option value="g">g</option><option value="ml">ml</option>
-          <option value="oz">oz</option><option value="lb">lb</option>
+          <option value="oz">oz</option><option value="lb">lb</option><option value="cup">cups</option>
           <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
         </select>
       </div>
+      {unit==="unit"&&hasCountSizes(n)&&<div style={{display:"flex",gap:6,marginBottom:10}}>
+        {["small","medium","large"].map(size=><button key={size} onClick={()=>setCountSize(size)} style={{
+          padding:"4px 8px",borderRadius:999,border:"1px solid "+(countSize===size?T.sageD:T.lineS),background:countSize===size?T.sage:T.raised,color:countSize===size?T.sageD:T.soft,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"system-ui,sans-serif",
+        }}>{size}</button>)}
+      </div>}
       <div style={{ background: T.cream, borderRadius: 8, padding: "7px 10px", marginBottom: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", rowGap: 3, columnGap: 10 }}>
           <CS l="Cal"     v={rnd((n.cal||0)*f)} />
@@ -1851,7 +2135,7 @@ function QuickPickPopup({ food, onSelect, onClose }) {
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={onClose} style={{ flex: 1, padding: "7px", border: "1px solid " + T.lineS, borderRadius: 8, background: "transparent", cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Cancel</button>
-        <button onClick={() => onSelect(amt || defaultAmt, unit)} style={{ flex: 2, padding: "7px", border: "none", borderRadius: 8, background: T.sageD, color: "#FBF7EE", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+ Select</button>
+        <button onClick={() => onSelect(amt || defaultAmt, unit, countSize)} style={{ flex: 2, padding: "7px", border: "none", borderRadius: 8, background: T.sageD, color: "#FBF7EE", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+ Select</button>
       </div>
     </div>
   );
@@ -2005,10 +2289,10 @@ function CS({ l, v }) {
 }
 
 /* SelectionTray — sticky bottom bar, drag up to expand */
-function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, onDeselect, onClear, onMakeRecipe, onAddToRecipe }) {
+function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, onChangeUnit, onChangeCountSize, onDeselect, onClear, onMakeRecipe, onAddToRecipe }) {
   const totals = selections.reduce((s, sel) => {
-    const f = portionToG(sel.amount, sel.unit) / 100;
     const n = sel.food.nutrition;
+    const f = amountToG(sel.amount, sel.unit, n, sel.countSize) / 100;
     return {
       cal:     s.cal     + (n.cal     || 0) * f,
       protein: s.protein + (n.protein || 0) * f,
@@ -2030,9 +2314,9 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
       {/* Collapsed bar */}
       <div style={{ background: T.sageD, color: "#FBF7EE", paddingBottom: "env(safe-area-inset-bottom,0px)", boxShadow: "0 -4px 20px rgba(0,0,0,0.25)" }}>
         {/* Drag handle */}
-        <div onClick={onToggleExpand} style={{ textAlign: "center", padding: "8px 0 6px", cursor: "pointer" }}>
+        <button aria-label={expanded ? "Collapse selected foods" : "Expand selected foods"} onClick={onToggleExpand} style={{ width:"100%", textAlign: "center", padding: "8px 0 6px", cursor: "pointer", background:"transparent", border:"none", display:"block" }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.35)", display: "inline-block" }} />
-        </div>
+        </button>
 
         {/* Nutrient strip */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px 8px" }}>
@@ -2054,7 +2338,7 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
         <div style={{ display:"flex", gap:5, overflowX:"auto", padding:"0 16px 10px", scrollbarWidth:"none" }}>
           {selections.map(sel => (
             <span key={sel.food.id} style={{ flexShrink:0, fontSize:11, fontWeight:600, background:"rgba(255,255,255,0.15)", borderRadius:6, padding:"3px 8px", whiteSpace:"nowrap", color:"#FBF7EE" }}>
-              {sel.food.emoji||""} {sel.food.name} · {sel.unit==="unit"?sel.amount+"ct":sel.amount+sel.unit}
+              {sel.food.emoji||""} {sel.food.name} · {sel.unit==="unit"?sel.amount+"ct"+(hasCountSizes(sel.food.nutrition)?" "+sizeLabel(sel.countSize):""):sel.amount+sel.unit}
             </span>
           ))}
         </div>
@@ -2074,9 +2358,7 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {selections.map(sel => {
                 const n = sel.food.nutrition;
-                const grams = sel.unit === "unit" && n?.countGrams
-                  ? Number(sel.amount) * Number(n.countGrams)
-                  : portionToG(sel.amount, sel.unit);
+                const grams = amountToG(sel.amount, sel.unit, n, sel.countSize);
                 const f = grams / 100;
                 const cal = rnd((n.cal || 0) * f);
                 const protein = rnd((n.protein || 0) * f, 1);
@@ -2088,15 +2370,18 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
                       <p style={{ fontWeight: 700, fontSize: 13, margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sel.food.name}</p>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <input type="number" value={sel.amount} onChange={e => onUpdateAmount(sel.food.id, e.target.value, sel.unit)}
-                          style={{ width: 60, padding: "3px 6px", border: "1px solid " + T.lineS, borderRadius: 7, fontSize: 13, fontFamily: "monospace", background: T.raised, color: T.ink }} />
-                        <select value={sel.unit} onChange={e => onUpdateAmount(sel.food.id, sel.amount, e.target.value)}
+                          style={{ width: 76, padding: "3px 6px", border: "1px solid " + T.lineS, borderRadius: 7, fontSize: 13, fontFamily: "monospace", background: T.raised, color: T.ink }} />
+                        <select value={sel.unit} onChange={e => onChangeUnit(sel.food.id, e.target.value)}
                           style={{ padding: "3px 5px", border: "1px solid " + T.lineS, borderRadius: 7, fontSize: 12, background: T.raised, color: T.ink }}>
                           {hasCount && <option value="unit">ct</option>}
                           <option value="g">g</option><option value="ml">ml</option>
-                          <option value="oz">oz</option><option value="lb">lb</option>
+                          <option value="oz">oz</option><option value="lb">lb</option><option value="cup">cups</option>
                           <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
                         </select>
-                        {sel.unit==="unit"&&n?.countGrams&&<span style={{fontSize:10,color:T.faint,fontFamily:"monospace"}}>= {rnd(Number(sel.amount)*Number(n.countGrams))}g</span>}
+                        {sel.unit==="unit"&&hasCountSizes(n)&&<select value={sel.countSize||"medium"} onChange={e=>onChangeCountSize(sel.food.id,e.target.value)} style={{ padding: "3px 5px", border: "1px solid " + T.lineS, borderRadius: 7, fontSize: 12, background: T.raised, color: T.ink }}>
+                          <option value="small">small</option><option value="medium">medium</option><option value="large">large</option>
+                        </select>}
+                        {sel.unit==="unit"&&n?.countGrams&&<span style={{fontSize:10,color:T.faint,fontFamily:"monospace"}}>= {rnd(Number(sel.amount)*countGramsFor(n, sel.countSize))}g</span>}
                         <span style={{ fontSize: 11, fontFamily: "monospace", color: T.soft }}>{cal} cal | {protein}g protein</span>
                       </div>
                     </div>
@@ -2113,7 +2398,7 @@ function SelectionTray({ selections, expanded, onToggleExpand, onUpdateAmount, o
 }
 
 
-function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSaveClose,onDelete}){
+function FoodModal({food,mode,cats,catById,foods,onAddCat,onClose,onEdit,onSave,onSaveClose,onDelete}){
   const editing=mode==="edit";
   const lastFoodId=useRef(null);
   const [name,setName]=useState(food.name);
@@ -2128,6 +2413,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
   const [calcAmt,setCalcAmt]=useState("");
   const [calcUnit,setCalcUnit]=useState(food.nutrition&&food.nutrition.unit||"g");
   const [showScan,setShowScan]=useState(false);
+  const [showProductSearch,setShowProductSearch]=useState(false);
   const [cookMethods,setCookMethods]=useState(food.cookMethods||[]);
   const [newMethod,setNewMethod]=useState("");
 
@@ -2163,7 +2449,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
     const fn=food.nutrition;
     const baseUnit=fn?.unit||"g";
     if(calcAmt!==""&&Number(calcAmt)>0){
-      if(calcUnit==="unit"&&fn?.countGrams) return Number(calcAmt)*Number(fn.countGrams)/100;
+      if(calcUnit==="unit"&&fn?.countGrams) return Number(calcAmt)*countGramsFor(fn)/100;
       return portionToG(Number(calcAmt),calcUnit)/100;
     }
     return portionToG(Number(fn?.portion)||100,baseUnit)/100;
@@ -2194,13 +2480,21 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
             <div style={{display:"flex",gap:6,marginBottom:6}}>
               <input autoFocus value={name} onChange={e=>{setName(e.target.value);setAutofilled(false);}} onBlur={onBlur}
                 placeholder="Food name, e.g. Chicken - wings" style={IS({fontSize:18,fontWeight:700,padding:"8px 10px",flex:1})}/>
+              <button onClick={()=>setShowProductSearch(true)} title="Search product database" style={{
+                padding:"8px 12px",borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,
+                cursor:"pointer",fontSize:18,flexShrink:0,color:T.ink,
+              }}>🔎</button>
               <button onClick={()=>setShowScan(true)} title="Scan barcode" style={{
                 padding:"8px 12px",borderRadius:9,border:"1px solid "+T.lineS,background:T.raised,
                 cursor:"pointer",fontSize:18,flexShrink:0,color:T.ink,
               }}>📷</button>
             </div>
+            {showProductSearch&&<ProductSearchModal foods={foods} onPick={r=>{
+              setName(r.name||name);setEmoji(r.emoji||emoji);setImage(r.image||image);
+              setN({...r.nutrition});setAutofilled(true);setShowProductSearch(false);
+            }} onClose={()=>setShowProductSearch(false)}/>}
             {showScan&&<BarcodeScanModal onResult={r=>{
-              setName(r.name||name);setEmoji(r.emoji||emoji);
+              setName(r.name||name);setEmoji(r.emoji||emoji);setImage(r.image||image);
               setN({...r.nutrition});setAutofilled(true);setShowScan(false);
             }} onClose={()=>setShowScan(false)}/>}
           </div>
@@ -2237,6 +2531,7 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
                 <input type="number" value={n.portion} onChange={e=>setN({...n,portion:e.target.value})} style={IS({width:56,padding:"4px 6px",fontSize:13})}/>
                 <select value={n.unit} onChange={e=>setN({...n,unit:e.target.value})} style={IS({padding:"4px 6px",fontSize:13,width:"auto"})}>
                   <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
+                  <option value="cup">cups</option>
                   <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
                 </select>
               </div>
@@ -2378,7 +2673,7 @@ function CatModal({cats,catById,onClose,onAdd,onDelete,onColor,onRename}){
   </Modal>;
 }
 
-function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
+function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup,onOpenFood}){
   const [sortBy,setSortBy]=useState("recent");
   const [recipeSearch,setRecipeSearch]=useState("");
   const [bQuery,setBQuery]=useState("");      // builder ingredient search
@@ -2440,7 +2735,7 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
   /* Builder: running nutrition */
   const bTotals=useMemo(()=>bItems.reduce((acc,s)=>{
     const g=s.unit==="unit"&&s.food.nutrition?.countGrams
-      ?Number(s.amount)*Number(s.food.nutrition.countGrams)
+      ?Number(s.amount)*countGramsFor(s.food.nutrition, s.countSize)
       :portionToG(Number(s.amount),s.unit);
     const n=s.food.nutrition; const f=g/100;
     return{cal:acc.cal+(n.cal||0)*f,protein:acc.protein+(n.protein||0)*f,
@@ -2451,14 +2746,27 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
     const hasCount=!!food.nutrition?.countGrams;
     const unit=hasCount?"unit":(food.nutrition?.unit||"g");
     const amount=hasCount?1:(food.nutrition?.portion||100);
-    setBItems(prev=>[...prev,{food,amount,unit}]);
+    setBItems(prev=>[...prev,{food,amount,unit,countSize:"medium"}]);
     setBQuery(""); bQueryRef.current?.focus();
   }
   function bRemove(id){setBItems(prev=>prev.filter(b=>b.food.id!==id));}
-  function bUpdate(id,amount){setBItems(prev=>prev.map(b=>b.food.id===id?{...b,amount:Math.max(b.unit==="unit"?1:b.unit==="tsp"||b.unit==="tbsp"?0.5:5, amount)}:b));}
+  function bUpdate(id, amount){setBItems(prev=>prev.map(b=>b.food.id===id?{...b,amount}:b));}
+  function bCommitAmount(id, nextAmount){
+    setBItems(prev=>prev.map(b=>b.food.id===id?{...b,amount:coerceAmount(nextAmount, b.unit, coerceAmount(b.amount, b.unit, minAmountForUnit(b.unit)))}:b));
+  }
+  function bChangeUnit(id, nextUnit){
+    setBItems(prev=>prev.map(b=>{
+      if(b.food.id!==id) return b;
+      const nextAmount = convertFoodAmount(coerceAmount(b.amount, b.unit, minAmountForUnit(b.unit)), b.unit, nextUnit, b.food.nutrition, b.countSize);
+      return {...b, unit: nextUnit, amount: String(nextAmount)};
+    }));
+  }
+  function bChangeCountSize(id, nextSize){
+    setBItems(prev=>prev.map(b=>b.food.id===id?{...b,countSize:nextSize}:b));
+  }
   function bCreate(){
     const ings=bItems.map(b=>({foodId:b.food.id,name:b.food.name,emoji:b.food.emoji,
-      image:b.food.image,nutrition:b.food.nutrition,amount:b.amount,unit:b.unit,cookMethod:""}));
+      image:b.food.image,nutrition:b.food.nutrition,amount:coerceAmount(b.amount, b.unit, minAmountForUnit(b.unit)),unit:b.unit,countSize:b.countSize||"medium",cookMethod:""}));
     onNew(ings); setBItems([]);
   }
 
@@ -2476,7 +2784,7 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
           boxShadow:"0 8px 24px rgba(0,0,0,0.12)",zIndex:20,overflow:"hidden"}}>
           {bResults.map(food=>{
             const n=food.nutrition;
-            const cal=rnd((n.cal||0)*(portionToG(n.countGrams||n.portion||100,n.countGrams?"g":n.unit||"g")/100));
+            const cal=rnd((n.cal||0)*(portionToG((n.countGrams||n.portion||100),n.countGrams?"g":n.unit||"g")/100));
             return <div key={food.id} onClick={()=>bAdd(food)} style={{
               display:"flex",alignItems:"center",gap:10,padding:"9px 14px",
               cursor:"pointer",borderBottom:"1px solid "+T.line,
@@ -2484,7 +2792,6 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
               <span style={{fontSize:22,flexShrink:0}}>{food.emoji||"🍽"}</span>
               <span style={{flex:1,fontSize:13,fontWeight:600}}>{food.name}</span>
               <span style={{fontSize:11,color:T.faint,fontFamily:"monospace"}}>{n.countGrams?"1 ct":"per "+(n.portion||100)+(n.unit||"g")} · {cal} cal</span>
-              <span style={{fontSize:18,color:T.sageD}}>+</span>
             </div>;
           })}
         </div>}
@@ -2508,9 +2815,10 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
           <div style={{flex:1,display:"flex",flexWrap:"wrap",gap:8}}>
             {bItems.map(sel=>{
               const n=sel.food.nutrition;
+              const safeAmount = coerceAmount(sel.amount, sel.unit, minAmountForUnit(sel.unit));
               const g=sel.unit==="unit"&&n?.countGrams
-                ?Number(sel.amount)*Number(n.countGrams)
-                :portionToG(Number(sel.amount),sel.unit);
+                ?safeAmount*countGramsFor(n, sel.countSize)
+                :portionToG(safeAmount,sel.unit);
               const cal=rnd((n.cal||0)*g/100);
               const p=(sel.food.tags||[]).length>0&&catById[sel.food.tags[0]]?catById[sel.food.tags[0]].palette:null;
               return <div key={sel.food.id} style={{
@@ -2518,9 +2826,9 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
                 borderRadius:12,overflow:"hidden",
                 border:"1px solid "+T.line,
                 boxShadow:"0 2px 8px rgba(0,0,0,0.07)",
-              }}>
-                {/* Blurred background image panel */}
-                <div style={{position:"relative",width:44,height:44,flexShrink:0}}>
+                }}>
+                  {/* Blurred background image panel */}
+                <button onClick={()=>onOpenFood&&onOpenFood(sel.food)} style={{position:"relative",width:44,height:44,flexShrink:0,padding:0,border:"none",background:"transparent",cursor:"pointer"}}>
                   <div style={{position:"absolute",inset:0,background:p?p.soft:T.cream}}/>
                   {sel.food.image&&<img src={sel.food.image} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"blur(8px)",opacity:0.45}}/>}
                   <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -2528,18 +2836,29 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
                       ?<img src={sel.food.image} alt="" style={{width:28,height:28,objectFit:"cover",borderRadius:6}}/>
                       :<span style={{fontSize:22}}>{sel.food.emoji||"🍽"}</span>}
                   </div>
-                </div>
+                </button>
                 {/* Name + quantity controls + cal */}
                 <div style={{padding:"5px 8px",background:T.raised,minWidth:0}}>
                   <p style={{fontWeight:700,fontSize:12,margin:"0 0 4px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:120}}>{sel.food.name}</p>
                   {(()=>{
-                    const step=sel.unit==="unit"?1:sel.unit==="tsp"||sel.unit==="tbsp"?0.5:10;
+                    const step=stepAmountForUnit(sel.unit);
                     const unitLabel=sel.unit==="unit"?"ct":sel.unit;
                     const btnS={width:20,height:20,borderRadius:5,border:"1px solid "+T.lineS,background:T.cream,cursor:"pointer",fontSize:14,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0,color:T.ink,fontWeight:700,flexShrink:0,fontFamily:"system-ui,sans-serif"};
                     return <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <button style={btnS} onClick={e=>{e.stopPropagation();bUpdate(sel.food.id,rnd(sel.amount-step,1));}}>−</button>
-                      <span style={{fontFamily:"monospace",fontSize:11,fontWeight:700,color:T.ink,minWidth:20,textAlign:"center"}}>{sel.amount}</span>
-                      <button style={btnS} onClick={e=>{e.stopPropagation();bUpdate(sel.food.id,rnd(sel.amount+step,1));}}>+</button>
+                      <button style={btnS} onClick={e=>{e.stopPropagation();bCommitAmount(sel.food.id, safeAmount-step);}}>−</button>
+                      <input type="text" inputMode="decimal" value={sanitizeAmountInput(sel.amount)} onChange={e=>bUpdate(sel.food.id, e.target.value)}
+                        onBlur={e=>bCommitAmount(sel.food.id, e.target.value)}
+                        style={{width:48,padding:"2px 4px",border:"1px solid "+T.lineS,borderRadius:6,fontFamily:"monospace",fontSize:11,fontWeight:700,color:T.ink,textAlign:"center",background:T.raised}}/>
+                      <button style={btnS} onClick={e=>{e.stopPropagation();bCommitAmount(sel.food.id, safeAmount+step);}}>+</button>
+                      <select value={sel.unit} onChange={e=>bChangeUnit(sel.food.id, e.target.value)} style={{padding:"2px 4px",border:"1px solid "+T.lineS,borderRadius:6,fontSize:11,background:T.raised,color:T.ink}}>
+                        {n?.countGrams&&<option value="unit">ct</option>}
+                        <option value="g">g</option><option value="ml">ml</option>
+                        <option value="oz">oz</option><option value="lb">lb</option><option value="cup">cups</option>
+                        <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
+                      </select>
+                      {sel.unit==="unit"&&hasCountSizes(n)&&<select value={sel.countSize||"medium"} onChange={e=>bChangeCountSize(sel.food.id, e.target.value)} style={{padding:"2px 4px",border:"1px solid "+T.lineS,borderRadius:6,fontSize:11,background:T.raised,color:T.ink}}>
+                        <option value="small">small</option><option value="medium">medium</option><option value="large">large</option>
+                      </select>}
                       <span style={{fontSize:10,color:T.faint,marginLeft:2}}>{unitLabel} · <b style={{color:T.ink}}>{cal}</b> cal</span>
                     </div>;
                   })()}
@@ -2596,7 +2915,8 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
       {filtered.map(r=>{const t=totals(r);return <div key={r.id} style={{display:"flex",flexDirection:"column",height:"100%"}}>
         <div onClick={()=>onOpen(r)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer",flex:1,display:"flex",flexDirection:"column"}}>
           <div style={{width:"100%",aspectRatio:"1.15",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {r.image?<img src={r.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:30}}>🍳</span>}
+            {r.image?<img src={r.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              :<EmojiArtwork emoji={recipeEmoji(r)} accents={recipeAccentEmojis(r)}/>}
           </div>
           <div style={{padding:"8px 10px",flex:1}}>
             <p style={{fontWeight:700,fontSize:13.5,margin:"0 0 3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.name}</p>
@@ -2616,7 +2936,7 @@ function Recipes({recipes,totals,foods,catById,onNew,onOpen,onDelete,onDup}){
   </div>;
 }
 
-function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSave,onSaveClose,onDelete,onFork}){
+function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSave,onSaveClose,onDelete,onFork,onOpenFood}){
   const editing=mode==="edit";
   const [name,setName]=useState(recipe.name);
   const [image,setImage]=useState(recipe.image);
@@ -2664,7 +2984,7 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
     </div>
     <div style={{display:"flex",gap:14,marginBottom:14}}>
       <div style={{display:"flex",flexDirection:"column",gap:5,alignItems:"center"}}>
-        <ImageSlot value={image} onChange={setImage} size={82} editing={editing} emoji="🍳"/>
+        <ImageSlot value={image} onChange={setImage} size={82} editing={editing} emoji={recipeEmoji({...recipe,name,ingredients:ings})}/>
       </div>
       <div style={{flex:1}}>
         {editing?<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="Recipe name" style={IS({fontSize:17,fontWeight:700,padding:"8px 10px",marginBottom:8})}/>
@@ -2705,8 +3025,10 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
     {ings.length===0?<div style={{padding:"1.5rem 0",textAlign:"center",color:T.faint,fontSize:13}}>No ingredients yet.</div>
     :<div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
       {ings.map((ing,idx)=>{const ri=resolveIng(ing,foodsMap);const n=scaleIng(ri);const u=ing.unit||ri.nutrition.unit||"g";return <div key={idx} style={{display:"flex",alignItems:"flex-start",gap:10,border:"1px solid "+T.line,borderRadius:10,padding:8,background:T.raised}}>
-        {ri.image?<img src={ri.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0,marginTop:2}}/>
-          :<span style={{fontSize:22,flexShrink:0,marginTop:2}}>{ri.emoji||"🍽"}</span>}
+        <button onClick={()=>onOpenFood&&onOpenFood(foodsMap[ri.foodId]||ri)} style={{padding:0,border:"none",background:"transparent",cursor:"pointer",flexShrink:0,marginTop:2}}>
+          {ri.image?<img src={ri.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:"cover",display:"block"}}/>
+            :<span style={{fontSize:22,display:"block"}}>{ri.emoji||"🍽"}</span>}
+        </button>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
             <p style={{fontWeight:600,fontSize:13,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ri.name}</p>
@@ -2720,16 +3042,19 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
         </div>
         {editing?<div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
           <div style={{display:"flex",gap:4}}>
-            <input type="number" value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:Number(e.target.value)||0}:x))} style={IS({width:60,padding:"5px 6px",fontFamily:"monospace"})}/>
-            <select value={u} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:e.target.value,amount:e.target.value==="unit"?1:x.amount}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
+            <input type="number" min={minAmountForUnit(u)} step={stepAmountForUnit(u)} value={ing.amount} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,amount:sanitizeAmountInput(e.target.value)}:x))} style={IS({width:76,padding:"5px 6px",fontFamily:"monospace"})}/>
+            <select value={u} onChange={e=>{const next=e.target.value;setIngs(prev=>prev.map((x,i)=>i===idx?{...x,unit:next,amount:convertFoodAmount(x.amount,u,next,ri.nutrition,x.countSize)}:x));}} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
               {ri.nutrition?.countGrams&&<option value="unit">ct</option>}
               <option value="g">g</option><option value="ml">ml</option><option value="oz">oz</option>
-              <option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
+              <option value="cup">cups</option><option value="lb">lb</option><option value="tsp">tsp</option><option value="tbsp">tbsp</option>
             </select>
+            {u==="unit"&&hasCountSizes(ri.nutrition)&&<select value={ing.countSize||"medium"} onChange={e=>setIngs(prev=>prev.map((x,i)=>i===idx?{...x,countSize:e.target.value}:x))} style={IS({width:"auto",padding:"5px 4px",fontSize:12})}>
+              <option value="small">small</option><option value="medium">medium</option><option value="large">large</option>
+            </select>}
           </div>
           <button onClick={()=>setIngs(prev=>prev.filter((_,i)=>i!==idx))} style={{padding:"3px 8px",borderRadius:7,border:"1px solid "+T.danger+"44",background:"transparent",color:T.danger,cursor:"pointer",fontSize:11,fontFamily:"system-ui,sans-serif",fontWeight:600}}>Remove</button>
         </div>
-        :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500,flexShrink:0}}>{fmtAmt(ing.amount,u,ri.nutrition)}</span>}
+        :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500,flexShrink:0}}>{fmtAmt(ing.amount,u,ri.nutrition,ing.countSize)}</span>}
       </div>;})}
     </div>}
     {/* ── Steps ── */}
@@ -2808,7 +3133,7 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
         </div></>}
     </div>
     {showPicker&&<IngPicker foods={foods} cats={cats} catById={catById}
-      onPick={f=>{setIngs(prev=>[...prev,{foodId:f.id,name:f.name,image:f.image,emoji:f.emoji||"",nutrition:f.nutrition,amount:f.nutrition.portion||100,unit:f.nutrition.unit||"g"}]);setShowPicker(false);}}
+      onPick={f=>{const hasCount=!!f.nutrition?.countGrams;setIngs(prev=>[...prev,{foodId:f.id,name:f.name,image:f.image,emoji:f.emoji||"",nutrition:f.nutrition,amount:hasCount?1:(f.nutrition.portion||100),unit:hasCount?"unit":(f.nutrition.unit||"g"),countSize:"medium"}]);setShowPicker(false);}}
       onClose={()=>setShowPicker(false)}/>}
   </Modal>;
 }
@@ -2893,7 +3218,8 @@ function PlanCard({recipe,servings,perServ,onOpen,onRemove,onDup,onServings}){
   return <div style={{position:"relative"}}>
     <div onClick={onOpen} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,overflow:"hidden",cursor:"pointer"}}>
       <div style={{width:"100%",aspectRatio:"1.3",background:T.cream,display:"flex",alignItems:"center",justifyContent:"center"}}>
-        {recipe.image?<img src={recipe.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:26}}>🍳</span>}
+        {recipe.image?<img src={recipe.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+          :<EmojiArtwork emoji={recipeEmoji(recipe)} accents={recipeAccentEmojis(recipe)} compact/>}
       </div>
       <div style={{padding:"8px 10px"}}>
         <p style={{fontWeight:700,fontSize:13.5,margin:"0 0 3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{recipe.name}</p>
@@ -2952,7 +3278,7 @@ function DayPickerModal({day,recipes,onPick,onClose}){
     <div style={{maxHeight:360,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
       {!filtered.length&&<p style={{fontSize:13,color:T.faint,textAlign:"center",padding:"1rem 0"}}>No recipes match.</p>}
       {filtered.map(r=><div key={r.id} onClick={()=>{setChosen(r);setServings(r.servings||1);}} style={{display:"flex",alignItems:"center",gap:10,padding:10,borderRadius:9,cursor:"pointer",border:"1px solid "+T.line}}>
-        <span style={{fontSize:18}}>🍳</span>
+        <span style={{fontSize:22}}>{recipeEmoji(r)}</span>
         <div style={{flex:1}}>
           <p style={{fontWeight:600,fontSize:13,margin:0}}>{r.name}</p>
           <p style={{fontSize:11,color:T.soft,margin:0,fontFamily:"monospace"}}>makes {r.servings||1} serving{(r.servings||1)!==1?"s":""}</p>
@@ -2963,7 +3289,7 @@ function DayPickerModal({day,recipes,onPick,onClose}){
 }
 
 function AddToRecipeModal({recipes,newFoods,onClose,onAdd,onNewRecipe}){
-  const newIngs=newFoods.map(f=>({foodId:f.id,name:f.name,image:f.image,emoji:f.emoji||"",nutrition:f.nutrition,amount:f._amt!=null?f._amt:(f.nutrition.portion||100),unit:f._unit||f.nutrition.unit||"g"}));
+  const newIngs=newFoods.map(f=>({foodId:f.id,name:f.name,image:f.image,emoji:f.emoji||"",nutrition:f.nutrition,amount:f._amt!=null?f._amt:(f.nutrition.portion||100),unit:f._unit||f.nutrition.unit||"g",countSize:f._countSize||"medium"}));
   return <Modal onClose={onClose} width={420}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
       <h3 style={{margin:0}}>Add {newFoods.length} food{newFoods.length>1?"s":""} to...</h3>
@@ -2979,6 +3305,7 @@ function AddToRecipeModal({recipes,newFoods,onClose,onAdd,onNewRecipe}){
       <p style={{fontSize:12,fontWeight:700,color:T.soft,textTransform:"uppercase",letterSpacing:"0.04em",margin:"0 0 8px"}}>Or add to existing recipe</p>
       <div style={{maxHeight:280,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
         {recipes.map(r=><div key={r.id} onClick={()=>onAdd(r,newIngs)} style={{display:"flex",alignItems:"center",gap:10,padding:10,borderRadius:9,cursor:"pointer",border:"1px solid "+T.line,background:T.raised}}>
+          <span style={{fontSize:22,flexShrink:0}}>{recipeEmoji(r)}</span>
           <div><p style={{fontWeight:600,fontSize:13,margin:0}}>{r.name}</p><p style={{fontSize:11,color:T.soft,margin:0}}>{r.ingredients.length} ingredients</p></div>
         </div>)}
       </div>
@@ -3093,7 +3420,7 @@ function ExCard({ex,catById,selected,contextOpen,quickPickOpen,onView,onContextT
   return <div onClick={onContextToggle} onMouseDown={onLPStart} onMouseUp={onLPEnd} onMouseLeave={onLPEnd} onTouchStart={onLPStart} onTouchEnd={onLPEnd}
     style={{background:T.raised,border:selected?"2px solid "+T.sageD:"1px solid "+T.line,borderRadius:14,overflow:"visible",cursor:"pointer",position:"relative",zIndex:(contextOpen||quickPickOpen)?16:"auto",display:"flex",flexDirection:"column"}}>
     <div style={{aspectRatio:"1",background:p?p.soft:T.cream,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"14px 14px 0 0",overflow:"hidden",flexShrink:0}}>
-      {ex.image?<img src={ex.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:36}}>{ex.emoji||"🏋️"}</span>}
+      {ex.image?<img src={ex.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:36}}>{exerciseEmoji(ex)}</span>}
     </div>
     {selected&&<div style={{position:"absolute",top:4,right:4,fontSize:13,fontWeight:800,color:T.sageD,zIndex:2}}>&#10003;</div>}
     <div style={{padding:"6px 8px",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
@@ -3126,7 +3453,7 @@ function ExQuickPick({ex,onSelect,onClose}){
   const cal=isCardio?estCalCardio(ex.met||5,Number(duration)||0):estCalStrength(ex.met||5,Number(reps)||0,Number(sets)||0);
 
   return <div style={{background:T.raised,border:"1.5px solid "+T.sageD,borderRadius:14,padding:"12px 14px",width:260,boxShadow:"0 8px 24px rgba(0,0,0,0.18)"}}>
-    <p style={{fontWeight:700,fontSize:13,margin:"0 0 8px",color:T.ink}}>{ex.emoji} {ex.name}</p>
+    <p style={{fontWeight:700,fontSize:13,margin:"0 0 8px",color:T.ink}}>{exerciseEmoji(ex)} {ex.name}</p>
     {(()=>{
       const doSelect=()=>onSelect(isCardio?{duration:Number(duration)||30,cal}:{weight:Number(weight)||0,wUnit,reps:Number(reps)||10,sets:Number(sets)||3,cal});
       const onEnter=e=>{if(e.key==="Enter")doSelect();};
@@ -3175,7 +3502,7 @@ function WSelectionTray({selections,expanded,onToggleExpand,onUpdate,onDeselect,
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:11,opacity:0.75,marginBottom:2}}>{selections.length} exercise{selections.length!==1?"s":""} | ~{totalCal} cal total</div>
           <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2}}>
-            {selections.map(sel=><span key={sel.ex.id} style={{flexShrink:0,fontSize:11,fontWeight:600,background:"rgba(255,255,255,0.18)",borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>{sel.ex.emoji} {sel.ex.name}</span>)}
+            {selections.map(sel=><span key={sel.ex.id} style={{flexShrink:0,fontSize:11,fontWeight:600,background:"rgba(255,255,255,0.18)",borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>{exerciseEmoji(sel.ex)} {sel.ex.name}</span>)}
           </div>
         </div>
         <button onClick={onMakeRoutine} style={{padding:"7px 14px",borderRadius:9,background:"#FBF7EE",color:T.sageD,fontWeight:700,fontSize:12,border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",flexShrink:0}}>Make routine</button>
@@ -3192,7 +3519,7 @@ function WSelectionTray({selections,expanded,onToggleExpand,onUpdate,onDeselect,
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {selections.map(sel=>{const isC=sel.ex.type==="cardio";return <div key={sel.ex.id} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:12,padding:10,display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:28,flexShrink:0}}>{sel.ex.emoji}</span>
+            <span style={{fontSize:28,flexShrink:0}}>{exerciseEmoji(sel.ex)}</span>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontWeight:700,fontSize:13,margin:"0 0 4px"}}>{sel.ex.name}</p>
               <span style={{fontSize:11,fontFamily:"monospace",color:T.soft}}>{isC?sel.duration+"min":sel.weight+(sel.wUnit||"lb")+" x "+sel.reps+" x "+sel.sets} | ~{sel.cal} cal</span>
@@ -3209,7 +3536,7 @@ function ExerciseModal({exercise,mode,cats,catById,onAddCat,onClose,onEdit,onSav
   const editing=mode==="edit";
   const lastId=useRef(null);
   const [name,setName]=useState(exercise.name);
-  const [emoji,setEmoji]=useState(exercise.emoji||"🏋️");
+  const [emoji,setEmoji]=useState(exerciseEmoji(exercise));
   const [tags,setTags]=useState(exercise.tags||[]);
   const [image,setImage]=useState(exercise.image);
   const [type,setType]=useState(exercise.type||"strength");
@@ -3224,7 +3551,7 @@ function ExerciseModal({exercise,mode,cats,catById,onAddCat,onClose,onEdit,onSav
   const [calcDur,setCalcDur]=useState("30");
   const [calcWUnit,setCalcWUnit]=useState("lb");
 
-  useEffect(()=>{if(lastId.current!==exercise.id){lastId.current=exercise.id;setName(exercise.name);setEmoji(exercise.emoji||"🏋️");setTags(exercise.tags||[]);setImage(exercise.image);setType(exercise.type||"strength");setMet(exercise.met||5);}},[exercise.id]);
+  useEffect(()=>{if(lastId.current!==exercise.id){lastId.current=exercise.id;setName(exercise.name);setEmoji(exerciseEmoji(exercise));setTags(exercise.tags||[]);setImage(exercise.image);setType(exercise.type||"strength");setMet(exercise.met||5);}},[exercise.id]);
   function togTag(id){setTags(prev=>prev.includes(id)?prev.filter(t=>t!==id):[...prev,id]);}
   function build(){return{id:exercise.id,name:name.trim(),emoji,tags,image,type,met:Number(met)||5};}
   const hasName=!!name.trim();
@@ -3379,7 +3706,7 @@ function RoutineModal({routine,mode,exercises,cats,catById,onClose,onEdit,onSave
     :<div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:14}}>
       {exs.map((ex,i)=>{const orig=exercises.find(e=>e.id===ex.exerciseId);const isC=orig&&orig.type==="cardio";return <div key={i} style={{border:"1px solid "+T.line,borderRadius:12,padding:10,background:T.raised}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-          <span style={{fontSize:22}}>{ex.emoji||"🏋️"}</span>
+          <span style={{fontSize:22}}>{orig?exerciseEmoji(orig):(ex.emoji||"🏋️")}</span>
           <p style={{fontWeight:700,fontSize:14,margin:0,flex:1}}>{ex.name}</p>
           {editing&&<button onClick={()=>removeEx(i)} style={{width:26,height:26,borderRadius:7,border:"1px solid "+T.danger+"44",background:"transparent",color:T.danger,cursor:"pointer",fontSize:12}}>x</button>}
         </div>
@@ -3419,7 +3746,7 @@ function RoutineModal({routine,mode,exercises,cats,catById,onClose,onEdit,onSave
       </div>
       <ExPickerList exercises={exercises} cats={cats} catById={catById} onPick={ex=>{
         const isC=ex.type==="cardio";
-        setExs(prev=>[...prev,{exerciseId:ex.id,name:ex.name,emoji:ex.emoji,
+        setExs(prev=>[...prev,{exerciseId:ex.id,name:ex.name,emoji:exerciseEmoji(ex),
           ...(isC?{duration:30}:{sets:[{weight:0,reps:10},{weight:0,reps:10},{weight:0,reps:10}]})}]);
         setShowPicker(false);
       }}/>
@@ -3439,7 +3766,7 @@ function ExPickerList({exercises,cats,catById,onPick}){
     <div style={{maxHeight:320,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
       {!filtered.length&&<p style={{fontSize:13,color:T.faint,textAlign:"center",padding:"1rem 0"}}>No exercises match.</p>}
       {filtered.map(f=><div key={f.id} onClick={()=>onPick(f)} style={{display:"flex",alignItems:"center",gap:10,padding:8,borderRadius:9,cursor:"pointer",border:"1px solid "+T.line}}>
-        <span style={{fontSize:20}}>{f.emoji||"🏋️"}</span>
+        <span style={{fontSize:20}}>{exerciseEmoji(f)}</span>
         <div style={{flex:1}}><p style={{fontWeight:600,fontSize:13,margin:0}}>{f.name}</p>
           <p style={{fontSize:10,color:T.faint,margin:0}}>{f.type==="cardio"?"Cardio":"Strength"} | MET {f.met||5}</p></div>
       </div>)}
@@ -3691,32 +4018,9 @@ function BarcodeScanModal({onResult,onClose}){
       const res=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
       const data=await res.json();
       if(data.status===1&&data.product){
-        const p=data.product; const nm=p.nutriments||{};
-        // Serving size in grams (used to convert per-serving → per-100g)
-        const servingG=parseFloat(p.serving_quantity)||100;
-        // Try _100g → _serving converted → plain key
-        function g100(key){
-          const v=parseFloat(nm[key+"_100g"]);
-          if(!isNaN(v)&&v>0) return v;
-          const vs=parseFloat(nm[key+"_serving"]);
-          if(!isNaN(vs)&&vs>0&&servingG>0) return vs/servingG*100;
-          const vp=parseFloat(nm[key]);
-          return(!isNaN(vp)&&vp>0)?vp:0;
-        }
-        // Calories: prefer kcal, fall back to kJ÷4.184
-        function cal100(){
-          const k=g100("energy-kcal"); if(k>0) return Math.round(k);
-          const j=g100("energy"); return j>0?Math.round(j/4.184):0;
-        }
-        setScanResult({
-          name:p.product_name||p.product_name_en||p.product_name_fr||"",emoji:"📦",
-          nutrition:{
-            cal:cal100(),
-            protein:rnd(g100("proteins"),1),carbs:rnd(g100("carbohydrates"),1),
-            fat:rnd(g100("fat"),1),fiber:rnd(g100("fiber"),1),sugar:rnd(g100("sugars"),1),
-            unit:"g",portion:servingG,
-          }
-        });
+        const normalized = normalizeOpenFoodFactsProduct(data.product);
+        if(normalized) setScanResult(normalized);
+        else setNotFound(true);
       }else{setNotFound(true);}
     }catch{setNotFound(true);}
     setLoading(false);
@@ -3750,7 +4054,15 @@ function BarcodeScanModal({onResult,onClose}){
 
     {scanResult&&<>
       <div style={{background:T.cream,borderRadius:12,padding:"12px 14px",marginBottom:12}}>
-        <p style={{fontWeight:700,fontSize:15,margin:"0 0 2px"}}>{scanResult.name||"Unknown product"}</p>
+        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}>
+          {scanResult.image
+            ?<img src={scanResult.image} alt="" style={{width:54,height:54,borderRadius:10,objectFit:"cover",flexShrink:0,background:T.raised}}/>
+            :<div style={{width:54,height:54,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:T.raised,flexShrink:0,fontSize:24}}>{scanResult.emoji||"📦"}</div>}
+          <div style={{minWidth:0}}>
+            <p style={{fontWeight:700,fontSize:15,margin:"0 0 2px"}}>{scanResult.name||"Unknown product"}</p>
+            {scanResult.brand&&<p style={{fontSize:11,color:T.soft,margin:0,fontWeight:700}}>{scanResult.brand}</p>}
+          </div>
+        </div>
         <p style={{fontSize:11,color:T.faint,margin:"0 0 10px",fontFamily:"monospace"}}>per 100g</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
           {[["Cal",scanResult.nutrition.cal,""],["Protein",scanResult.nutrition.protein,"g"],["Carbs",scanResult.nutrition.carbs,"g"],
@@ -3767,6 +4079,88 @@ function BarcodeScanModal({onResult,onClose}){
 
     {notFound&&<p style={{fontSize:13,color:T.danger,textAlign:"center",margin:"12px 0"}}>Product not found. Try entering the barcode number manually.</p>}
     {status==="manual"&&!notFound&&!loading&&<p style={{fontSize:11,color:T.faint,textAlign:"center",margin:"8px 0"}}>Camera scanning not supported on this browser. Enter the barcode number above.</p>}
+  </Modal>;
+}
+
+function ProductSearchModal({foods,onPick,onClose}){
+  const [query,setQuery]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [results,setResults]=useState([]);
+  const [searched,setSearched]=useState(false);
+  const [error,setError]=useState("");
+  const reqRef=useRef(0);
+  const localResults=searchLocalProductFoods(foods,query);
+
+  useEffect(()=>{
+    const q=query.trim();
+    if(q.length<2){setResults([]);setSearched(false);setLoading(false);setError("");return;}
+    const run=async()=>{
+      const reqId=++reqRef.current;
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),6000);
+      setLoading(true); setSearched(true); setError("");
+      try{
+        const url=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=12&fields=product_name,product_name_en,product_name_fr,brands,image_front_url,image_front_small_url,image_url,nutriments,serving_quantity`;
+        const res=await fetch(url,{signal:controller.signal});
+        const type=(res.headers.get("content-type")||"").toLowerCase();
+        if(!res.ok||!type.includes("json")) throw new Error("search-unavailable");
+        const data=await res.json();
+        if(reqRef.current!==reqId) return;
+        const items=(data.products||[]).map(normalizeOpenFoodFactsProduct).filter(Boolean);
+        setResults(items);
+      }catch(err){
+        if(reqRef.current===reqId){
+          setResults([]);
+          setError(err?.name==="AbortError"
+            ?"Live product search took too long. You can still use saved foods or scan a barcode."
+            :"Live product search is busy right now. You can still use saved foods or scan a barcode.");
+        }
+      }
+      clearTimeout(timer);
+      if(reqRef.current===reqId) setLoading(false);
+    };
+    const t=setTimeout(run,300);
+    return ()=>clearTimeout(t);
+  },[query]);
+
+  const combinedCount=localResults.length+results.length;
+
+  return <Modal onClose={onClose} width={540} level={2}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+      <h3 style={{margin:0}}>Search products</h3><CloseBtn onClick={onClose}/>
+    </div>
+    <input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Try Snickers, Costco turkey, Coke Zero..."
+      style={IS({marginBottom:12,fontSize:15})}/>
+    {loading&&<div style={{textAlign:"center",padding:"18px 0",color:T.faint,fontSize:13}}>Searching branded products…</div>}
+    {!!error&&<p style={{fontSize:12,color:T.danger,textAlign:"center",padding:"8px 0",margin:0}}>{error}</p>}
+    {!loading&&searched&&combinedCount===0&&!error&&<p style={{fontSize:13,color:T.faint,textAlign:"center",padding:"10px 0",margin:0}}>No products found for that search yet.</p>}
+    {!searched&&<p style={{fontSize:12,color:T.faint,textAlign:"center",padding:"6px 0",margin:0}}>Type at least 2 letters to search the product database.</p>}
+    <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto"}}>
+      {!!localResults.length&&<p style={{fontSize:11,color:T.soft,margin:"2px 2px 0",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em"}}>Saved in your app</p>}
+      {localResults.map((item,idx)=><button key={"local_"+item.name+"_"+idx} onClick={()=>onPick(item)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:12,border:"1px solid "+T.line,background:T.raised,cursor:"pointer",textAlign:"left"}}>
+        {item.image
+          ?<img src={item.image} alt="" style={{width:58,height:58,borderRadius:10,objectFit:"cover",flexShrink:0,background:T.cream}}/>
+          :<div style={{width:58,height:58,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:T.cream,flexShrink:0,fontSize:26}}>{item.emoji||"📦"}</div>}
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{fontWeight:700,fontSize:14,margin:"0 0 3px",color:T.ink}}>{item.name}</p>
+          <p style={{fontSize:11,color:T.soft,margin:"0 0 5px",fontWeight:700}}>{item.brand}</p>
+          <p style={{fontSize:11,color:T.faint,margin:0,fontFamily:"monospace"}}>{item.nutrition.cal} cal · {item.nutrition.protein}g protein · per {item.nutrition.portion || 100}{item.nutrition.unit || "g"}</p>
+        </div>
+        <span style={{fontSize:12,fontWeight:800,color:T.sageD,flexShrink:0}}>Use</span>
+      </button>)}
+      {!!results.length&&<p style={{fontSize:11,color:T.soft,margin:"6px 2px 0",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em"}}>Live product results</p>}
+      {results.map((item,idx)=><button key={item.name+"_"+idx} onClick={()=>onPick(item)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:12,border:"1px solid "+T.line,background:T.raised,cursor:"pointer",textAlign:"left"}}>
+        {item.image
+          ?<img src={item.image} alt="" style={{width:58,height:58,borderRadius:10,objectFit:"cover",flexShrink:0,background:T.cream}}/>
+          :<div style={{width:58,height:58,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:T.cream,flexShrink:0,fontSize:26}}>{item.emoji||"📦"}</div>}
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{fontWeight:700,fontSize:14,margin:"0 0 3px",color:T.ink}}>{item.name}</p>
+          {item.brand&&<p style={{fontSize:11,color:T.soft,margin:"0 0 5px",fontWeight:700}}>{item.brand}</p>}
+          <p style={{fontSize:11,color:T.faint,margin:0,fontFamily:"monospace"}}>{item.nutrition.cal} cal · {item.nutrition.protein}g protein · per {item.nutrition.portion || 100}g</p>
+        </div>
+        <span style={{fontSize:12,fontWeight:800,color:T.sageD,flexShrink:0}}>Use</span>
+      </button>)}
+    </div>
   </Modal>;
 }
 
