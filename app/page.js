@@ -500,6 +500,14 @@ const COOK_METHODS_MAP = {
 
 /* Count-based portions: 1 egg = 50g, 1 carrot = 60g, etc.
    countLabel = what to call one unit; countGrams = grams per one unit */
+/* Universal cooking methods — always available as options in the food editor */
+const COMMON_COOK_METHODS = [
+  "Raw","Cooked","Boiled","Steamed","Baked","Grilled","Roasted","Fried",
+  "Pan-fried","Air-fried","Sautéed","Scrambled","Poached","Mashed","Blended",
+  "Toasted","Broiled","Slow-cooked","Stir-fried","Microwave","Mixed","As-is",
+  "Marinated","Pickled","Dried","Chopped","Shredded","Caramelised","Braised",
+];
+
 const COUNT_LABELS = {
   "egg":                   {label:"egg",       grams:50},
   "tomato":                {label:"tomato",    grams:120},
@@ -2224,32 +2232,40 @@ function FoodModal({food,mode,cats,catById,onAddCat,onClose,onEdit,onSave,onSave
       </div>
     </div>
 
-    {/* Cooking methods — same chip style as Tags */}
+    {/* Cooking methods */}
     {(()=>{
       const suggested = COOK_METHODS_MAP[normK(food.name)] || COOK_METHODS_MAP[food.name.toLowerCase().trim()] || [];
       const active = editing ? cookMethods : (food.cookMethods||[]);
-      // All methods to show: union of suggested + already-active custom ones
-      const allMethods = [...new Set([...suggested, ...active])];
+      // In edit mode: show ALL common methods + any active custom ones not in common list
+      const displayList = editing
+        ? [...new Set([...suggested, ...COMMON_COOK_METHODS, ...active])]
+        : active;
+      const customActive = active.filter(m => !COMMON_COOK_METHODS.includes(m) && !suggested.includes(m));
       function toggle(m){ setCookMethods(prev=>prev.includes(m)?prev.filter(x=>x!==m):[...prev,m]); }
       return <div style={{marginBottom:14,paddingTop:14,borderTop:"1px solid "+T.line}}>
-        <Label>{editing?"Cooking methods — select all that apply":"Cooking methods"}</Label>
-        <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:editing&&newMethod!==undefined?8:0}}>
-          {allMethods.length===0&&!editing&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
-          {allMethods.map(m=>{
+        <Label>{editing?"Cooking methods — tap to select":"Cooking methods"}</Label>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+          {displayList.length===0&&<span style={{fontSize:12,color:T.faint}}>None added</span>}
+          {displayList.map(m=>{
             const on=active.includes(m);
-            const isCustom=!suggested.includes(m);
+            const isSuggested=suggested.includes(m);
             return <button key={m} onClick={()=>editing&&toggle(m)} style={{
-              display:"inline-flex",alignItems:"center",gap:5,padding:"4px 11px",fontSize:12,fontWeight:600,
+              display:"inline-flex",alignItems:"center",gap:4,padding:"4px 11px",fontSize:12,fontWeight:600,
               cursor:editing?"pointer":"default",fontFamily:"system-ui,sans-serif",borderRadius:14,
               border:on?"1.5px solid "+T.sageD:"1px solid "+T.line,
-              background:on?T.sage:"transparent",color:on?T.sageD:T.soft,
+              background:on?T.sage:isSuggested&&editing?"rgba(61,74,46,0.05)":"transparent",
+              color:on?T.sageD:T.soft,
             }}>
-              <span style={{width:7,height:7,borderRadius:"50%",background:on?T.sageD:T.lineS,display:"inline-block",flexShrink:0}}/>
+              {on&&<span style={{width:6,height:6,borderRadius:"50%",background:T.sageD,display:"inline-block",flexShrink:0}}/>}
               {m}
-              {editing&&on&&isCustom&&<span onClick={e=>{e.stopPropagation();setCookMethods(p=>p.filter(x=>x!==m));}} style={{marginLeft:2,fontSize:13,lineHeight:1,color:T.sageD,cursor:"pointer"}}>×</span>}
             </button>;
           })}
         </div>
+        {editing&&customActive.map(m=>(
+          <span key={m} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:12,fontWeight:600,background:T.sage,color:T.sageD,padding:"3px 9px",borderRadius:7,marginRight:4,marginBottom:4}}>
+            {m}<button onClick={()=>setCookMethods(p=>p.filter(x=>x!==m))} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.sageD,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
+          </span>
+        ))}
         {editing&&<div style={{display:"flex",gap:6,marginTop:8}}>
           <input value={newMethod} onChange={e=>setNewMethod(e.target.value)}
             placeholder="+ Add custom method…" style={IS({fontSize:13,flex:1})}
