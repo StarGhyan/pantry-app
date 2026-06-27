@@ -3480,14 +3480,30 @@ function BarcodeScanModal({onResult,onClose}){
       const res=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
       const data=await res.json();
       if(data.status===1&&data.product){
-        const p=data.product;const nm=p.nutriments||{};
+        const p=data.product; const nm=p.nutriments||{};
+        // Serving size in grams (used to convert per-serving → per-100g)
+        const servingG=parseFloat(p.serving_quantity)||100;
+        // Try _100g → _serving converted → plain key
+        function g100(key){
+          const v=parseFloat(nm[key+"_100g"]);
+          if(!isNaN(v)&&v>0) return v;
+          const vs=parseFloat(nm[key+"_serving"]);
+          if(!isNaN(vs)&&vs>0&&servingG>0) return vs/servingG*100;
+          const vp=parseFloat(nm[key]);
+          return(!isNaN(vp)&&vp>0)?vp:0;
+        }
+        // Calories: prefer kcal, fall back to kJ÷4.184
+        function cal100(){
+          const k=g100("energy-kcal"); if(k>0) return Math.round(k);
+          const j=g100("energy"); return j>0?Math.round(j/4.184):0;
+        }
         setScanResult({
-          name:p.product_name||p.product_name_en||"",emoji:"📦",
+          name:p.product_name||p.product_name_en||p.product_name_fr||"",emoji:"📦",
           nutrition:{
-            cal:Math.round(nm["energy-kcal_100g"]||(nm["energy_100g"]||0)/4.184||0),
-            protein:rnd(nm["proteins_100g"]||0,1),carbs:rnd(nm["carbohydrates_100g"]||0,1),
-            fat:rnd(nm["fat_100g"]||0,1),fiber:rnd(nm["fiber_100g"]||0,1),sugar:rnd(nm["sugars_100g"]||0,1),
-            unit:"g",portion:100,
+            cal:cal100(),
+            protein:rnd(g100("proteins"),1),carbs:rnd(g100("carbohydrates"),1),
+            fat:rnd(g100("fat"),1),fiber:rnd(g100("fiber"),1),sugar:rnd(g100("sugars"),1),
+            unit:"g",portion:servingG,
           }
         });
       }else{setNotFound(true);}
