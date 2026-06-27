@@ -1274,6 +1274,8 @@ export default function App() {
   const [stock, setStock] = useState(() => load("stock", []));
   const [shopping, setShopping] = useState(() => load("shopping", []));
   const [tasks, setTasks] = useState(() => load("tasks", []));
+  const [collections, setCollections] = useState(() => load("task_collections", []));
+  const [taskPlan, setTaskPlan] = useState(() => load("task_plan", {}));
   const [tTab, setTTab] = useState("all");
 
   /* ── WORKOUT STATE ── */
@@ -1298,6 +1300,8 @@ export default function App() {
   useEffect(()=>save("stock",stock),[stock]);
   useEffect(()=>save("shopping",shopping),[shopping]);
   useEffect(()=>save("tasks",tasks),[tasks]);
+  useEffect(()=>save("task_collections",collections),[collections]);
+  useEffect(()=>save("task_plan",taskPlan),[taskPlan]);
   useEffect(()=>save("w_exercises",exercises),[exercises]);
   useEffect(()=>save("w_cats",wCats),[wCats]);
   useEffect(()=>save("w_routines",routines),[routines]);
@@ -1335,8 +1339,17 @@ export default function App() {
   /* ── TASKS CRUD ── */
   function addTask(t){setTasks(prev=>[{...t,id:uid("tsk"),createdAt:Date.now(),done:false},...prev]);}
   function toggleTask(id){setTasks(prev=>prev.map(t=>t.id===id?{...t,done:!t.done,doneAt:!t.done?Date.now():null}:t));}
-  function deleteTask(id){setTasks(prev=>prev.filter(t=>t.id!==id));}
+  function deleteTask(id){setTasks(prev=>prev.filter(t=>t.id!==id));setCollections(prev=>prev.map(c=>({...c,taskIds:(c.taskIds||[]).filter(x=>x!==id)})));setTaskPlan(prev=>{const n={};for(const d of Object.keys(prev))n[d]=(prev[d]||[]).filter(x=>x!==id);return n;});}
   function updateTask(id,u){setTasks(prev=>prev.map(t=>t.id===id?{...t,...u}:t));}
+  /* ── COLLECTIONS CRUD ── */
+  function addCollection(c){setCollections(prev=>[{...c,id:uid("col"),taskIds:[],createdAt:Date.now()},...prev]);}
+  function updateCollection(id,u){setCollections(prev=>prev.map(c=>c.id===id?{...c,...u}:c));}
+  function deleteCollection(id){setCollections(prev=>prev.filter(c=>c.id!==id));}
+  function addTaskToCollection(colId,taskId){setCollections(prev=>prev.map(c=>c.id===colId?{...c,taskIds:[...new Set([...(c.taskIds||[]),taskId])]}:c));}
+  function removeTaskFromCollection(colId,taskId){setCollections(prev=>prev.map(c=>c.id===colId?{...c,taskIds:(c.taskIds||[]).filter(x=>x!==taskId)}:c));}
+  /* ── TASK PLAN CRUD ── */
+  function addTaskToDay(day,taskId){setTaskPlan(prev=>({...prev,[day]:[...new Set([...(prev[day]||[]),taskId])]}));}
+  function removeTaskFromDay(day,taskId){setTaskPlan(prev=>({...prev,[day]:(prev[day]||[]).filter(x=>x!==taskId)}));}
 
   /* ── NUTRITION CRUD ── */
   const catById = useMemo(()=>{const m={};cats.forEach(c=>{m[c.id]={...c,palette:pal(c)};});return m;},[cats]);
@@ -1403,7 +1416,7 @@ export default function App() {
     ? [{id:"stock",label:"In Stock",e:"🏠"},{id:"foods",label:"Foods",e:"🥦"},{id:"recipes",label:"Recipes",e:"👨‍🍳"},{id:"plan",label:"Plan",e:"📅"}]
     : isWorkout
     ? [{id:"exercises",label:"Exercises",e:"🏋️"},{id:"routines",label:"Routines",e:"📋"},{id:"plan",label:"Plan",e:"📅"}]
-    : [{id:"all",label:"All",e:"📋"},{id:"work",label:"Work",e:"💼"},{id:"chores",label:"Chores",e:"🏠"},{id:"personal",label:"Personal",e:"🎯"},{id:"done",label:"Done",e:"✅"}];
+    : [{id:"all",label:"All",e:"📋"},{id:"work",label:"Work",e:"💼"},{id:"chores",label:"Chores",e:"🏠"},{id:"personal",label:"Personal",e:"🎯"},{id:"collections",label:"Collections",e:"📁"},{id:"plan",label:"Plan",e:"📅"},{id:"done",label:"Done",e:"✅"}];
 
   return <div className="app-shell" style={{fontFamily:"system-ui,sans-serif",color:T.ink}}>
     {/* Desktop sidebar */}
@@ -1546,8 +1559,11 @@ export default function App() {
       </>}
 
       {/* ═══ TASKS SECTION ═══ */}
-      {isTasks&&<TasksSection tasks={tasks} activeTab={tTab}
-        onAdd={addTask} onToggle={toggleTask} onDelete={deleteTask} onUpdate={updateTask}/>}
+      {isTasks&&<TasksSection tasks={tasks} collections={collections} taskPlan={taskPlan} activeTab={tTab}
+        onAdd={addTask} onToggle={toggleTask} onDelete={deleteTask} onUpdate={updateTask}
+        onAddCollection={addCollection} onUpdateCollection={updateCollection} onDeleteCollection={deleteCollection}
+        onAddTaskToCollection={addTaskToCollection} onRemoveTaskFromCollection={removeTaskFromCollection}
+        onAddTaskToDay={addTaskToDay} onRemoveTaskFromDay={removeTaskFromDay}/>}
 
       {toast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:T.sageD,color:"#FBF7EE",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,zIndex:999,whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,0.2)"}}>{toast}</div>}
     </div>
@@ -3706,11 +3722,24 @@ const TASK_PRESETS = {
     "Errands":      ["Grocery shopping","Post office","Bank","Pharmacy","Pay bills"],
   },
   work: {
-    "Write":        ["Report","Email","Presentation","Proposal","Summary","Meeting notes"],
-    "Plan":         ["Weekly schedule","Project timeline","Meeting agenda","Goal setting"],
-    "Organize":     ["Files","Emails","Calendar","Documents","Desktop"],
-    "Research":     ["Topic research","Market research","Competitor analysis","Data collection"],
-    "Meetings":     ["Team standup","Client call","1:1","Review session"],
+    "Job": {
+      "Write":      ["Report","Email","Proposal","Presentation","Summary","Meeting notes"],
+      "Plan":       ["Weekly schedule","Project timeline","Meeting agenda","Goal setting"],
+      "Organize":   ["Files","Emails","Calendar","Documents","Desktop"],
+      "Research":   ["Topic research","Market research","Competitor analysis"],
+      "Meetings":   ["Team standup","Client call","1:1","Review session","Brainstorm"],
+    },
+    "School": {
+      "Homework":   ["Math","English","Science","History","Language","Art","Programming"],
+      "Assignment": ["Essay","Project","Lab report","Presentation","Research paper"],
+      "Study":      ["Quiz prep","Exam review","Test study","Flashcards","Practice problems","Group study"],
+      "Reading":    ["Chapter review","Textbook","Article","Novel","Research paper"],
+    },
+    "Personal Work": {
+      "Project":    ["Side project","Creative work","Freelance","Portfolio update"],
+      "Learning":   ["Online course","Tutorial","Read documentation","Skill practice"],
+      "Admin":      ["Finances","Taxes","Insurance","Update resume","Budget"],
+    },
   },
   personal: {
     "Self-care":    ["Shower","Skin care","Hair care","Meditation","Journaling","Stretching"],
@@ -3721,9 +3750,19 @@ const TASK_PRESETS = {
   }
 };
 
-function TasksSection({tasks,activeTab,onAdd,onToggle,onDelete,onUpdate}){
+function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDelete,onUpdate,
+  onAddCollection,onUpdateCollection,onDeleteCollection,onAddTaskToCollection,onRemoveTaskFromCollection,
+  onAddTaskToDay,onRemoveTaskFromDay}){
   const [showAdd,setShowAdd]=useState(false);
   const [editTask,setEditTask]=useState(null);
+
+  // Route to sub-views
+  if(activeTab==="collections") return <TaskCollections tasks={tasks} collections={collections}
+    onAdd={onAddCollection} onUpdate={onUpdateCollection} onDelete={onDeleteCollection}
+    onAddTask={onAddTaskToCollection} onRemoveTask={onRemoveTaskFromCollection}
+    onToggleTask={onToggle}/>;
+  if(activeTab==="plan") return <TaskPlanView tasks={tasks} taskPlan={taskPlan}
+    onAddToDay={onAddTaskToDay} onRemoveFromDay={onRemoveTaskFromDay} onToggle={onToggle}/>;
 
   function daysUntil(d){
     if(!d)return null;
@@ -3982,6 +4021,174 @@ function BodyMap({selectedTags}){
       })}
     </svg>
     {selectedTags.length===0&&<p style={{textAlign:"center",fontSize:11,color:T.faint,margin:"6px 0 0"}}>Select exercises to see muscles highlighted</p>}
+  </div>;
+}
+
+/* ── Task Collections ── */
+const COL_COLORS = ["#C4683D","#4A7A8C","#6E8C4A","#9A5A7A","#B8923A","#3F8F7A","#6B7FB0"];
+
+function TaskCollections({tasks,collections,onAdd,onUpdate,onDelete,onAddTask,onRemoveTask,onToggleTask}){
+  const [showNew,setShowNew]=useState(false);
+  const [openCol,setOpenCol]=useState(null);
+  const [newName,setNewName]=useState("");
+  const [newEmoji,setNewEmoji]=useState("📁");
+  const [colorIdx,setColorIdx]=useState(0);
+  const [pickTask,setPickTask]=useState(false);
+
+  const taskById=useMemo(()=>{const m={};tasks.forEach(t=>m[t.id]=t);return m;},[tasks]);
+
+  function createCollection(){
+    if(!newName.trim()) return;
+    onAdd({name:newName.trim(),emoji:newEmoji,colorHex:COL_COLORS[colorIdx]});
+    setNewName("");setShowNew(false);
+  }
+
+  if(openCol){
+    const col=collections.find(c=>c.id===openCol);
+    if(!col){setOpenCol(null);return null;}
+    const colTasks=(col.taskIds||[]).map(id=>taskById[id]).filter(Boolean);
+    const pending=tasks.filter(t=>!t.done&&!(col.taskIds||[]).includes(t.id));
+    return <div>
+      <button onClick={()=>setOpenCol(null)} style={{fontSize:13,fontWeight:600,color:T.tc,background:"transparent",border:"none",cursor:"pointer",marginBottom:14,fontFamily:"system-ui,sans-serif",padding:0}}>← Back to collections</button>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div style={{width:42,height:42,borderRadius:10,background:col.colorHex+"22",border:"2px solid "+col.colorHex,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{col.emoji}</div>
+        <div>
+          <h3 style={{margin:0,fontSize:16}}>{col.name}</h3>
+          <p style={{margin:0,fontSize:11,color:T.faint}}>{colTasks.filter(t=>!t.done).length} pending · {colTasks.filter(t=>t.done).length} done</p>
+        </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+          <Btn icon="+" variant="ghost" onClick={()=>setPickTask(true)}>Add task</Btn>
+          <DelBtn icon onConfirm={()=>{onDelete(col.id);setOpenCol(null);}}/>
+        </div>
+      </div>
+      {colTasks.length===0?<Empty icon="📁" title="No tasks yet" body="Tap '+ Add task' to add tasks to this collection."/>
+      :<div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {colTasks.map(task=>{
+          const cat=TASK_CATS[task.category]||TASK_CATS.personal;
+          return <div key={task.id} style={{display:"flex",alignItems:"center",gap:10,background:T.raised,border:"1px solid "+T.line,borderRadius:10,padding:"10px 12px",opacity:task.done?0.55:1}}>
+            <button onClick={()=>onToggleTask(task.id)} style={{width:22,height:22,borderRadius:6,border:"2px solid "+(task.done?T.sageD:T.lineS),background:task.done?T.sageD:"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+              {task.done&&<span style={{color:"#FBF7EE",fontSize:12}}>✓</span>}
+            </button>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{fontWeight:600,fontSize:13,margin:"0 0 2px",textDecoration:task.done?"line-through":"none"}}>{task.title}</p>
+              <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:4,background:cat.soft,color:cat.hex}}>{cat.emoji} {cat.label}</span>
+            </div>
+            <button onClick={()=>onRemoveTask(col.id,task.id)} style={{color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontSize:16}}>×</button>
+          </div>;
+        })}
+      </div>}
+      {pickTask&&<Modal onClose={()=>setPickTask(false)} width={420}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><h3 style={{margin:0}}>Add task to {col.name}</h3><CloseBtn onClick={()=>setPickTask(false)}/></div>
+        {pending.length===0?<p style={{color:T.faint,textAlign:"center",fontSize:13}}>No available tasks.</p>
+        :<div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:360,overflowY:"auto"}}>
+          {pending.map(t=><div key={t.id} onClick={()=>{onAddTask(col.id,t.id);setPickTask(false);}} style={{padding:"10px 12px",borderRadius:10,border:"1px solid "+T.line,cursor:"pointer",background:T.raised}}>
+            <p style={{fontWeight:600,fontSize:13,margin:"0 0 2px"}}>{t.title}</p>
+            <span style={{fontSize:10,color:T.faint}}>{t.category}{t.subCategory?" · "+t.subCategory:""}</span>
+          </div>)}
+        </div>}
+      </Modal>}
+    </div>;
+  }
+
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+      <p style={{margin:0,fontSize:13,color:T.faint}}>Group related tasks into a collection</p>
+      <Btn icon="+" onClick={()=>setShowNew(true)}>New collection</Btn>
+    </div>
+    {showNew&&<div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,padding:"14px 16px",marginBottom:16}}>
+      <div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center"}}>
+        <input value={newEmoji} onChange={e=>setNewEmoji(e.target.value||"📁")} maxLength={2} style={{width:46,fontSize:22,textAlign:"center",border:"1px solid "+T.lineS,borderRadius:8,padding:"4px",background:T.raised}}/>
+        <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Collection name…" style={IS({flex:1})} onKeyDown={e=>{if(e.key==="Enter") createCollection();}}/>
+      </div>
+      <div style={{display:"flex",gap:5,marginBottom:10}}>
+        {COL_COLORS.map((c,i)=><button key={c} onClick={()=>setColorIdx(i)} style={{width:24,height:24,borderRadius:"50%",background:c,border:colorIdx===i?"3px solid "+T.ink:"2px solid transparent",cursor:"pointer",padding:0}}/>)}
+      </div>
+      <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}>
+        <Btn variant="ghost" onClick={()=>setShowNew(false)}>Cancel</Btn>
+        <Btn disabled={!newName.trim()} onClick={createCollection}>Create</Btn>
+      </div>
+    </div>}
+    {collections.length===0?<Empty icon="📁" title="No collections yet" body="Collections group tasks like a project or goal."/>
+    :<div className="card-grid">
+      {collections.map(col=>{
+        const colTasks=(col.taskIds||[]).map(id=>taskById[id]).filter(Boolean);
+        const pending=colTasks.filter(t=>!t.done).length;
+        return <div key={col.id} onClick={()=>setOpenCol(col.id)} style={{background:T.raised,border:"1px solid "+T.line,borderRadius:14,padding:"14px",cursor:"pointer",display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{width:40,height:40,borderRadius:10,background:col.colorHex+"22",border:"2px solid "+col.colorHex,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{col.emoji}</div>
+          <div>
+            <p style={{fontWeight:700,fontSize:14,margin:"0 0 2px"}}>{col.name}</p>
+            <p style={{fontSize:11,color:T.faint,margin:0}}>{pending} pending · {colTasks.length} total</p>
+          </div>
+          {pending>0&&<div style={{height:4,borderRadius:2,background:T.line,overflow:"hidden"}}>
+            <div style={{height:"100%",background:col.colorHex,width:`${Math.round((1-pending/colTasks.length)*100)}%`}}/>
+          </div>}
+        </div>;
+      })}
+    </div>}
+  </div>;
+}
+
+/* ── Task Weekly Plan ── */
+function TaskPlanView({tasks,taskPlan,onAddToDay,onRemoveFromDay,onToggle}){
+  const [selDay,setSelDay]=useState(DAYS[new Date().getDay()===0?6:new Date().getDay()-1]);
+  const [pickDay,setPickDay]=useState(null);
+  const taskById=useMemo(()=>{const m={};tasks.forEach(t=>m[t.id]=t);return m;},[tasks]);
+
+  const dayTasks=(taskPlan[selDay]||[]).map(id=>taskById[id]).filter(Boolean);
+  const pending=tasks.filter(t=>!t.done&&!(taskPlan[selDay]||[]).includes(t.id));
+
+  return <div>
+    {/* Day tabs */}
+    <div className="scroll-x" style={{display:"flex",gap:5,marginBottom:16,paddingBottom:2}}>
+      {DAYS.map(d=>{const cnt=(taskPlan[d]||[]).length;const a=d===selDay;
+        return <button key={d} onClick={()=>setSelDay(d)} style={{
+          flexShrink:0,fontSize:13,fontWeight:600,padding:"8px 13px",borderRadius:11,cursor:"pointer",
+          fontFamily:"system-ui,sans-serif",
+          border:a?"1px solid "+T.sageD:"1px solid "+T.line,
+          background:a?T.sage:"transparent",color:a?T.sageD:T.soft,
+        }}>{d}{cnt>0&&<span style={{marginLeft:5,fontSize:10,opacity:0.7}}>({cnt})</span>}</button>;
+      })}
+    </div>
+
+    <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+      <Btn icon="+" onClick={()=>setPickDay(selDay)}>Plan a task for {selDay}</Btn>
+    </div>
+
+    {dayTasks.length===0?<Empty icon="📅" title={`Nothing planned for ${selDay}`} body="Tap 'Plan a task' to add tasks to this day."/>
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {dayTasks.map(task=>{
+        const cat=TASK_CATS[task.category]||TASK_CATS.personal;
+        return <div key={task.id} style={{display:"flex",alignItems:"center",gap:10,background:T.raised,border:"1px solid "+T.line,borderRadius:10,padding:"10px 12px",opacity:task.done?0.55:1}}>
+          <button onClick={()=>onToggle(task.id)} style={{width:22,height:22,borderRadius:6,border:"2px solid "+(task.done?T.sageD:T.lineS),background:task.done?T.sageD:"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+            {task.done&&<span style={{color:"#FBF7EE",fontSize:12}}>✓</span>}
+          </button>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontWeight:600,fontSize:13,margin:"0 0 3px",textDecoration:task.done?"line-through":"none"}}>{task.title}</p>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:4,background:cat.soft,color:cat.hex}}>{cat.emoji} {cat.label}</span>
+              {task.subCategory&&<span style={{fontSize:10,color:T.faint,padding:"1px 4px"}}>{task.subCategory}</span>}
+            </div>
+          </div>
+          <button onClick={()=>onRemoveFromDay(selDay,task.id)} style={{color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontSize:16}}>×</button>
+        </div>;
+      })}
+    </div>}
+
+    {pickDay&&<Modal onClose={()=>setPickDay(null)} width={420}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><h3 style={{margin:0}}>Add task to {pickDay}</h3><CloseBtn onClick={()=>setPickDay(null)}/></div>
+      {pending.length===0?<p style={{color:T.faint,textAlign:"center",fontSize:13}}>All pending tasks are already planned for this day.</p>
+      :<div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto"}}>
+        {pending.map(t=>{const cat=TASK_CATS[t.category]||TASK_CATS.personal;return(
+          <div key={t.id} onClick={()=>{onAddToDay(pickDay,t.id);setPickDay(null);}} style={{padding:"10px 12px",borderRadius:10,border:"1px solid "+T.line,cursor:"pointer",background:T.raised,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:16}}>{cat.emoji}</span>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:600,fontSize:13,margin:"0 0 2px"}}>{t.title}</p>
+              <span style={{fontSize:10,color:T.faint}}>{t.subCategory||t.category}</span>
+            </div>
+          </div>
+        );})}
+      </div>}
+    </Modal>}
   </div>;
 }
 
