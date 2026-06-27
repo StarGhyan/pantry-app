@@ -1854,11 +1854,11 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
   const [showAddSubcat, setShowAddSubcat] = useState(false);
   const [newSubcatLabel, setNewSubcatLabel] = useState("");
   const [newSubcatEmoji, setNewSubcatEmoji] = useState("🏷️");
-  const [activeSort, setActiveSort] = useState(null); // id of active nutrient sort
+  const [activeSorts, setActiveSorts] = useState([]); // ordered list of active sort ids
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const longPressTimer = useRef(null);
 
-  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); setActiveSort(null); setShowFilterPanel(false); }, [activeCat]);
+  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); setActiveSorts([]); setShowFilterPanel(false); }, [activeCat]);
   const selectedIds = useMemo(() => new Set(Object.keys(selections)), [selections]);
   const selectedList = useMemo(() => Object.values(selections), [selections]);
   // Merge built-in subcats with user-defined ones for the active category
@@ -1899,14 +1899,22 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
         if (ra !== rb) return ra - rb;
         return a.name.localeCompare(b.name);
       });
-    } else if (activeSort) {
-      const sortFn = NUTRIENT_FILTERS.find(f=>f.id===activeSort)?.sort;
-      if (sortFn) arr.sort(sortFn);
+    } else if (activeSorts.length > 0) {
+      // Multi-sort: first selected is primary, rest are tiebreakers
+      arr.sort((a, b) => {
+        for (const id of activeSorts) {
+          const flt = NUTRIENT_FILTERS.find(f=>f.id===id);
+          if (!flt) continue;
+          const d = flt.sort(a, b);
+          if (d !== 0) return d;
+        }
+        return a.name.localeCompare(b.name);
+      });
     } else {
       arr.sort((a, b) => a.name.localeCompare(b.name));
     }
     return arr;
-  }, [foods, q, activeCat, activeSubcat, activeSort]);
+  }, [foods, q, activeCat, activeSubcat, activeSorts]);
 
   function openContext(foodId, e) { e.stopPropagation(); setContextCard(prev => prev === foodId ? null : foodId); setQuickPick(null); }
   function openQuickPick(foodId) { setQuickPick(foodId); setContextCard(null); }
@@ -1985,32 +1993,38 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
       )}
 
       {/* ── Sort row ── */}
-      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:10,flexWrap:"wrap"}}>
         <button onClick={()=>setShowFilterPanel(s=>!s)} style={{
           display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",
           borderRadius:14,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"system-ui,sans-serif",flexShrink:0,
-          border:activeSort?"1.5px solid "+T.tc:"1px solid "+T.lineS,
-          background:activeSort?T.tcSoft:"transparent",color:activeSort?T.tc:T.soft,
-        }}><span>↕</span> Sort by</button>
-        {/* Active sort chip */}
-        {activeSort&&(()=>{const flt=NUTRIENT_FILTERS.find(f=>f.id===activeSort);return flt?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,background:T.tcSoft,color:T.tc,padding:"3px 8px",borderRadius:10,border:"1px solid "+T.tc+"44"}}>
+          border:activeSorts.length>0?"1.5px solid "+T.tc:"1px solid "+T.lineS,
+          background:activeSorts.length>0?T.tcSoft:"transparent",color:activeSorts.length>0?T.tc:T.soft,
+        }}><span>↕</span> Sort by{activeSorts.length>0?` (${activeSorts.length})`:""}</button>
+        {/* Active sort chips — one per selected */}
+        {activeSorts.map(id=>{const flt=NUTRIENT_FILTERS.find(f=>f.id===id);return flt?<span key={id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,background:T.tcSoft,color:T.tc,padding:"3px 8px",borderRadius:10,border:"1px solid "+T.tc+"44"}}>
           {flt.emoji} {flt.label}
-          <button onClick={()=>setActiveSort(null)} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.tc,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
-        </span>:null;})()}
+          <button onClick={()=>setActiveSorts(prev=>prev.filter(x=>x!==id))} style={{background:"transparent",border:"none",cursor:"pointer",padding:"0 0 0 2px",color:T.tc,fontSize:14,lineHeight:1,fontFamily:"system-ui,sans-serif"}}>×</button>
+        </span>:null;})}
+        {activeSorts.length>0&&<button onClick={()=>setActiveSorts([])} style={{fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0,fontWeight:600}}>Clear all</button>}
       </div>
-      {/* Sort dropdown panel */}
-      {showFilterPanel&&<div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:12,padding:"10px 12px",marginBottom:10,display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
-        <span style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:"uppercase",letterSpacing:"0.04em",marginRight:4}}>Sort by:</span>
-        {NUTRIENT_FILTERS.map(flt=>{
-          const on=activeSort===flt.id;
-          return <button key={flt.id} onClick={()=>{setActiveSort(on?null:flt.id);setShowFilterPanel(false);}} style={{
-            display:"inline-flex",alignItems:"center",gap:5,padding:"5px 12px",borderRadius:14,cursor:"pointer",
-            fontSize:12,fontWeight:600,fontFamily:"system-ui,sans-serif",
-            border:on?"1.5px solid "+T.tc:"1px solid "+T.line,
-            background:on?T.tcSoft:"transparent",color:on?T.tc:T.soft,
-          }}><span>{flt.emoji}</span>{flt.label}{on&&<span style={{marginLeft:2}}>✓</span>}</button>;
-        })}
-        {activeSort&&<button onClick={()=>{setActiveSort(null);setShowFilterPanel(false);}} style={{marginLeft:"auto",fontSize:11,color:T.faint,background:"transparent",border:"none",cursor:"pointer",fontFamily:"system-ui,sans-serif",padding:0}}>✕ Clear sort</button>}
+      {/* Sort panel — stays open so user can pick multiple */}
+      {showFilterPanel&&<div style={{background:T.raised,border:"1px solid "+T.line,borderRadius:12,padding:"10px 12px",marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:10,fontWeight:800,color:T.faint,textTransform:"uppercase",letterSpacing:"0.04em"}}>Sort by — tap to add/remove</span>
+          <button onClick={()=>setShowFilterPanel(false)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.faint,fontSize:16,lineHeight:1,padding:0}}>×</button>
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {NUTRIENT_FILTERS.map(flt=>{
+            const on=activeSorts.includes(flt.id);
+            return <button key={flt.id} onClick={()=>setActiveSorts(prev=>on?prev.filter(x=>x!==flt.id):[...prev,flt.id])} style={{
+              display:"inline-flex",alignItems:"center",gap:5,padding:"6px 13px",borderRadius:14,cursor:"pointer",
+              fontSize:12,fontWeight:600,fontFamily:"system-ui,sans-serif",
+              border:on?"1.5px solid "+T.tc:"1px solid "+T.line,
+              background:on?T.tcSoft:"transparent",color:on?T.tc:T.soft,
+            }}><span>{flt.emoji}</span>{flt.label}{on&&<span style={{marginLeft:2,fontSize:13}}>✓</span>}</button>;
+          })}
+        </div>
+        {activeSorts.length>0&&<p style={{fontSize:10,color:T.faint,margin:"8px 0 0",fontStyle:"italic"}}>First selected = primary sort. Others break ties.</p>}
       </div>}
 
       {foods.length === 0 ? <Empty icon="apple" title="Your pantry is empty" body="Tap 'Add food' to get started." />
