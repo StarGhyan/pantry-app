@@ -3756,20 +3756,14 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
   const [showAdd,setShowAdd]=useState(false);
   const [editTask,setEditTask]=useState(null);
 
-  // Route to sub-views
-  if(activeTab==="collections") return <TaskCollections tasks={tasks} collections={collections}
-    onAdd={onAddCollection} onUpdate={onUpdateCollection} onDelete={onDeleteCollection}
-    onAddTask={onAddTaskToCollection} onRemoveTask={onRemoveTaskFromCollection}
-    onToggleTask={onToggle}/>;
-  if(activeTab==="plan") return <TaskPlanView tasks={tasks} taskPlan={taskPlan}
-    onAddToDay={onAddTaskToDay} onRemoveFromDay={onRemoveTaskFromDay} onToggle={onToggle}/>;
-
   function daysUntil(d){
     if(!d)return null;
     return Math.ceil((new Date(d+"T12:00:00")-new Date())/(864e5));
   }
 
+  // All hooks must be called before any early returns
   const visible=useMemo(()=>{
+    if(activeTab==="collections"||activeTab==="plan") return [];
     let arr=tasks.filter(t=>{
       if(activeTab==="done") return t.done;
       if(t.done) return false;
@@ -3788,6 +3782,14 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
 
   const pending=tasks.filter(t=>!t.done).length;
   const overdue=tasks.filter(t=>!t.done&&t.dueDate&&daysUntil(t.dueDate)<0).length;
+
+  // Route after all hooks
+  if(activeTab==="collections") return <TaskCollections tasks={tasks} collections={collections}
+    onAdd={onAddCollection} onUpdate={onUpdateCollection} onDelete={onDeleteCollection}
+    onAddTask={onAddTaskToCollection} onRemoveTask={onRemoveTaskFromCollection}
+    onToggleTask={onToggle}/>;
+  if(activeTab==="plan") return <TaskPlanView tasks={tasks} taskPlan={taskPlan}
+    onAddToDay={onAddTaskToDay} onRemoveFromDay={onRemoveTaskFromDay} onToggle={onToggle}/>;
 
   return <div>
     {/* Summary chips */}
