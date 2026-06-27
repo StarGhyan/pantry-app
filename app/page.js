@@ -1103,6 +1103,14 @@ function scaleIng(ing) {
   return {cal:(n.cal||0)*f,protein:(n.protein||0)*f,carbs:(n.carbs||0)*f,fat:(n.fat||0)*f,fiber:(n.fiber||0)*f,sugar:(n.sugar||0)*f};
 }
 
+/* Total gram weight of a whole recipe (sum of all ingredient amounts) */
+function recipeWeightG(recipe) {
+  return (recipe.ingredients||[]).reduce((sum,ing)=>{
+    if(ing.unit==="unit"&&ing.nutrition?.countGrams) return sum+(Number(ing.amount)||0)*Number(ing.nutrition.countGrams);
+    return sum+portionToG(Number(ing.amount)||0, ing.unit||ing.nutrition?.unit||"g");
+  },0);
+}
+
 /* "per 1 ct (50g)" or "per 100g" */
 function portionLabel(n) {
   if (n?.countGrams) {
@@ -3277,14 +3285,42 @@ function Plan({plan,recipes,foods,foodsMap,totals,selDay,setSelDay,
               <div style={{flex:1,minWidth:0}}>
                 <p style={{fontWeight:600,fontSize:13,margin:"0 0 3px",cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}
                   onClick={()=>{const r=rById[item.recipeId];if(r)onOpenRecipe(r);}}>{rById[item.recipeId]?.name||"Unknown recipe"}</p>
-                <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                  <button onClick={()=>onUpdateMealItem(selDay,meal.id,item.iid,{servings:Math.max(0.5,(Number(item.servings)||1)-0.5)})} style={{...btnSm,width:22,height:22}}>−</button>
-                  <input type="number" value={item.servings||1} min="0.5" step="0.5" onChange={e=>onUpdateMealItem(selDay,meal.id,item.iid,{servings:Number(e.target.value)||0.5})}
-                    style={{width:40,textAlign:"center",fontFamily:"monospace",fontSize:12,border:"1px solid "+T.lineS,borderRadius:5,padding:"2px 4px",background:T.raised,color:T.ink}}/>
-                  <button onClick={()=>onUpdateMealItem(selDay,meal.id,item.iid,{servings:(Number(item.servings)||1)+0.5})} style={{...btnSm,width:22,height:22}}>+</button>
-                  <span style={{fontSize:11,color:T.soft}}>serv.</span>
-                  {n&&<span style={{fontSize:10,fontFamily:"monospace",color:T.faint}}>· {n.cal} cal</span>}
-                </div>
+                {(()=>{
+                  const r=rById[item.recipeId];
+                  const totalG=r?recipeWeightG(r):0;
+                  const psG=totalG/(Number(r?.servings)||1); // grams per 1 serving
+                  const inW=!!item.weightAmount;
+                  const inputS={fontFamily:"monospace",fontSize:12,border:"1px solid "+T.lineS,borderRadius:5,padding:"2px 4px",background:T.raised,color:T.ink};
+                  if(inW){
+                    const effS=psG>0?rnd(portionToG(Number(item.weightAmount)||0,item.weightUnit||"g")/psG,2):0;
+                    return <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                      <input type="number" value={item.weightAmount||""} onChange={e=>{
+                        const amt=Number(e.target.value)||0;
+                        const s=psG>0?rnd(portionToG(amt,item.weightUnit||"g")/psG,2):0;
+                        onUpdateMealItem(selDay,meal.id,item.iid,{weightAmount:amt,servings:s});
+                      }} style={{...inputS,width:60,textAlign:"center"}} autoFocus/>
+                      <select value={item.weightUnit||"g"} onChange={e=>{
+                        const u=e.target.value;
+                        const s=psG>0?rnd(portionToG(Number(item.weightAmount)||0,u)/psG,2):0;
+                        onUpdateMealItem(selDay,meal.id,item.iid,{weightUnit:u,servings:s});
+                      }} style={{...inputS,fontSize:11}}>
+                        <option value="g">g</option><option value="ml">ml</option>
+                        <option value="cup">cup</option><option value="oz">oz</option><option value="lb">lb</option>
+                      </select>
+                      {psG>0&&<span style={{fontSize:9,color:T.faint,fontFamily:"monospace"}}>≈{effS}serv</span>}
+                      <button onClick={()=>onUpdateMealItem(selDay,meal.id,item.iid,{weightAmount:null,weightUnit:null})} style={{fontSize:9,color:T.soft,background:"transparent",border:"1px solid "+T.lineS,borderRadius:4,cursor:"pointer",padding:"1px 5px",fontFamily:"system-ui,sans-serif"}}>serv</button>
+                      {n&&<span style={{fontSize:10,fontFamily:"monospace",color:T.faint}}>· {n.cal} cal</span>}
+                    </div>;
+                  }
+                  return <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                    <button onClick={()=>onUpdateMealItem(selDay,meal.id,item.iid,{servings:Math.max(0.5,(Number(item.servings)||1)-0.5)})} style={{...btnSm,width:22,height:22}}>−</button>
+                    <input type="number" value={item.servings||1} min="0.5" step="0.5" onChange={e=>onUpdateMealItem(selDay,meal.id,item.iid,{servings:Number(e.target.value)||0.5})} style={{...inputS,width:40,textAlign:"center"}}/>
+                    <button onClick={()=>onUpdateMealItem(selDay,meal.id,item.iid,{servings:(Number(item.servings)||1)+0.5})} style={{...btnSm,width:22,height:22}}>+</button>
+                    <span style={{fontSize:11,color:T.soft}}>serv.</span>
+                    {psG>0&&<button onClick={()=>onUpdateMealItem(selDay,meal.id,item.iid,{weightAmount:rnd(psG*(Number(item.servings)||1)),weightUnit:"g"})} style={{fontSize:9,color:T.tc,background:T.tcSoft,border:"1px solid "+T.tc+"44",borderRadius:4,cursor:"pointer",padding:"1px 5px",fontFamily:"system-ui,sans-serif",fontWeight:600}}>by g</button>}
+                    {n&&<span style={{fontSize:10,fontFamily:"monospace",color:T.faint}}>· {n.cal} cal</span>}
+                  </div>;
+                })()}
               </div>
             </>:<>
               <span style={{fontSize:22,flexShrink:0}}>{lf?.emoji||item.emoji||"🍽"}</span>
