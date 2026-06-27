@@ -1281,6 +1281,7 @@ export default function App() {
   const [addToRecipeModal, setAddToRecipeModal] = useState(null);
   const [stock, setStock] = useState(() => load("stock", []));
   const [shopping, setShopping] = useState(() => load("shopping", []));
+  const [userSubcats, setUserSubcats] = useState(() => load("user_subcats", {}));
   const [tasks, setTasks] = useState(() => load("tasks", []));
   const [collections, setCollections] = useState(() => load("task_collections", []));
   const [taskPlan, setTaskPlan] = useState(() => load("task_plan", {}));
@@ -1307,6 +1308,10 @@ export default function App() {
   useEffect(()=>save("plan",plan),[plan]);
   useEffect(()=>save("stock",stock),[stock]);
   useEffect(()=>save("shopping",shopping),[shopping]);
+  useEffect(()=>save("user_subcats",userSubcats),[userSubcats]);
+
+  function addUserSubcat(catId,subcat){setUserSubcats(prev=>({...prev,[catId]:[...(prev[catId]||[]),{...subcat,id:uid("usc")}]}));}
+  function delUserSubcat(catId,subcatId){setUserSubcats(prev=>({...prev,[catId]:(prev[catId]||[]).filter(s=>s.id!==subcatId)}));}
   useEffect(()=>save("tasks",tasks),[tasks]);
   useEffect(()=>save("task_collections",collections),[collections]);
   useEffect(()=>save("task_plan",taskPlan),[taskPlan]);
@@ -1478,11 +1483,12 @@ export default function App() {
           onAddShopping={addShoppingItem} onToggleShopping={toggleShoppingItem}
           onRemoveShopping={removeShoppingItem} onClearDone={clearDoneShopping}/>}
 
-        {tab==="foods"&&<Pantry foods={foods} cats={cats} catById={catById}
+        {tab==="foods"&&<Pantry foods={foods} cats={cats} catById={catById} userSubcats={userSubcats}
           onOpen={f=>{setOpenFood(f);setFoodMode("view");}}
-          onAdd={()=>{setOpenFood({id:uid("food"),name:"",emoji:"🍽",tags:[],image:null,nutrition:emptyN(),createdAt:Date.now()});setFoodMode("edit");}}
+          onAdd={(defaultTags=[])=>{setOpenFood({id:uid("food"),name:"",emoji:"🍽",tags:defaultTags.filter(Boolean),image:null,nutrition:emptyN(),createdAt:Date.now()});setFoodMode("edit");}}
           onManageCats={()=>setShowCatMgr(true)}
-          onMakeRecipe={handleMakeRecipe}/>}
+          onMakeRecipe={handleMakeRecipe}
+          onAddUserSubcat={addUserSubcat} onDelUserSubcat={delUserSubcat}/>}
 
         {addToRecipeModal&&<AddToRecipeModal recipes={recipes} newFoods={addToRecipeModal.foods}
           onClose={()=>setAddToRecipeModal(null)}
@@ -1616,7 +1622,7 @@ function topNutrients(n, portion) {
     .slice(0, 3);
 }
 
-function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecipe }) {
+function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats, onMakeRecipe, onAddUserSubcat, onDelUserSubcat }) {
   const [q, setQ] = useState("");
   const [activeCat, setActiveCat] = useState("all");
   const [activeSubcat, setActiveSubcat] = useState(null);
@@ -1625,12 +1631,18 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
   const [contextCard, setContextCard] = useState(null);
   const [quickPick, setQuickPick] = useState(null);
   const [trayExpanded, setTrayExpanded] = useState(false);
+  const [showAddSubcat, setShowAddSubcat] = useState(false);
+  const [newSubcatLabel, setNewSubcatLabel] = useState("");
+  const [newSubcatEmoji, setNewSubcatEmoji] = useState("🏷️");
   const longPressTimer = useRef(null);
 
-  useEffect(() => { setActiveSubcat(null); }, [activeCat]);
+  useEffect(() => { setActiveSubcat(null); setShowAddSubcat(false); }, [activeCat]);
   const selectedIds = useMemo(() => new Set(Object.keys(selections)), [selections]);
   const selectedList = useMemo(() => Object.values(selections), [selections]);
-  const subcats = activeCat !== "all" ? (SUBCATS[activeCat] || []) : [];
+  // Merge built-in subcats with user-defined ones for the active category
+  const subcats = useMemo(() => activeCat !== "all"
+    ? [...(SUBCATS[activeCat]||[]), ...(userSubcats?.[activeCat]||[]).map(s=>({...s,isCustom:true}))]
+    : [], [activeCat, userSubcats]);
 
   const visible = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -1701,7 +1713,7 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
         </button>
         <div style={{ flex: 1 }} />
         <button onClick={onManageCats} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", border: "1px solid " + T.lineS, borderRadius: 9, fontSize: 13, fontWeight: 600, background: T.raised, color: T.ink, cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>Edit categories</button>
-        <Btn icon="+" onClick={onAdd}>Add food</Btn>
+        <Btn icon="+" onClick={()=>onAdd(activeCat!=="all"?[activeCat]:[])}>Add food</Btn>
       </div>
 
       <div className="cat-strip" style={{ marginBottom: subcats.length ? 8 : 14 }}>
@@ -1709,14 +1721,31 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
         {cats.map(c => { const count = foods.filter(f => (f.tags || []).includes(c.id)).length; if (count === 0) return null; return <CatTab key={c.id} active={activeCat === c.id} onClick={() => setActiveCat(c.id)} label={c.name} count={count} p={catById[c.id].palette} />; })}
       </div>
 
-      {subcats.length > 0 && (
-        <div className="scroll-x" style={{ display: "flex", gap: 5, paddingBottom: 6, marginBottom: 14, paddingLeft: 10, borderLeft: "3px solid " + (catById[activeCat] ? catById[activeCat].palette.hex : T.lineS) }}>
-          <button onClick={() => setActiveSubcat(null)} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 16, border: "1px solid " + T.lineS, background: !activeSubcat ? T.ink : "transparent", color: !activeSubcat ? "#FBF7EE" : T.soft, cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>All {catById[activeCat] ? catById[activeCat].name : ""}</button>
-          {subcats.map(sc => { const active = activeSubcat ? activeSubcat.id === sc.id : false; const p = catById[activeCat] ? catById[activeCat].palette : null; return (
-            <button key={sc.id} onClick={() => setActiveSubcat(active ? null : sc)} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "5px 11px", borderRadius: 16, cursor: "pointer", fontFamily: "system-ui,sans-serif", border: active ? "1.5px solid " + (p ? p.hex : T.lineS) : "1px solid " + T.line, background: active ? (p ? p.soft : T.cream) : "transparent", color: active ? (p ? p.deep : T.ink) : T.soft, display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <span>{sc.emoji}</span>{sc.label}
-            </button>
-          ); })}
+      {activeCat !== "all" && (
+        <div style={{marginBottom:14}}>
+          <div className="scroll-x" style={{ display: "flex", gap: 5, paddingBottom: 6, alignItems:"center", borderLeft: "3px solid " + (catById[activeCat] ? catById[activeCat].palette.hex : T.lineS), paddingLeft:10 }}>
+            {/* All button */}
+            <button onClick={() => setActiveSubcat(null)} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 16, border: "1px solid " + T.lineS, background: !activeSubcat ? T.ink : "transparent", color: !activeSubcat ? "#FBF7EE" : T.soft, cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>All {catById[activeCat] ? catById[activeCat].name : ""}</button>
+            {/* Built-in + user subcats */}
+            {subcats.map(sc => { const active = activeSubcat?.id === sc.id; const p = catById[activeCat]?.palette; return (
+              <span key={sc.id} style={{display:"inline-flex",alignItems:"center",gap:2,flexShrink:0}}>
+                <button onClick={() => setActiveSubcat(active ? null : sc)} style={{ fontSize: 12, fontWeight: 600, padding: "5px 11px", borderRadius: 16, cursor: "pointer", fontFamily: "system-ui,sans-serif", border: active ? "1.5px solid " + (p ? p.hex : T.lineS) : "1px solid " + T.line, background: active ? (p ? p.soft : T.cream) : "transparent", color: active ? (p ? p.deep : T.ink) : T.soft, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span>{sc.emoji}</span>{sc.label}
+                </button>
+                {sc.isCustom&&<button onClick={()=>onDelUserSubcat(activeCat,sc.id)} title="Remove" style={{width:16,height:16,borderRadius:"50%",border:"none",background:T.danger+"22",color:T.danger,cursor:"pointer",fontSize:10,lineHeight:1,padding:0,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>}
+              </span>
+            );})}
+            {/* Add subcategory button */}
+            <button onClick={()=>setShowAddSubcat(s=>!s)} title="Add subcategory" style={{flexShrink:0,width:26,height:26,borderRadius:"50%",border:"1.5px dashed "+T.lineS,background:"transparent",color:T.faint,cursor:"pointer",fontSize:16,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+          </div>
+          {/* Inline add subcategory form */}
+          {showAddSubcat&&<div style={{display:"flex",gap:6,marginTop:6,alignItems:"center",paddingLeft:13}}>
+            <input value={newSubcatEmoji} onChange={e=>setNewSubcatEmoji(e.target.value||"🏷️")} maxLength={2} style={{width:38,fontSize:18,textAlign:"center",border:"1px solid "+T.lineS,borderRadius:7,padding:"4px",background:T.raised}}/>
+            <input value={newSubcatLabel} onChange={e=>setNewSubcatLabel(e.target.value)} placeholder="Subcategory name…" style={IS({flex:1,fontSize:13})}
+              onKeyDown={e=>{if(e.key==="Enter"&&newSubcatLabel.trim()){onAddUserSubcat(activeCat,{label:newSubcatLabel.trim(),emoji:newSubcatEmoji,names:[newSubcatLabel.trim().toLowerCase()]});setNewSubcatLabel("");setNewSubcatEmoji("🏷️");setShowAddSubcat(false);}}}/>
+            <Btn disabled={!newSubcatLabel.trim()} onClick={()=>{onAddUserSubcat(activeCat,{label:newSubcatLabel.trim(),emoji:newSubcatEmoji,names:[newSubcatLabel.trim().toLowerCase()]});setNewSubcatLabel("");setNewSubcatEmoji("🏷️");setShowAddSubcat(false);}}>Add</Btn>
+            <button onClick={()=>setShowAddSubcat(false)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.faint,fontSize:18,lineHeight:1,padding:0}}>×</button>
+          </div>}
         </div>
       )}
 
@@ -1732,6 +1761,19 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
               onLongPressStart={() => startLongPress(f)} onLongPressEnd={cancelLongPress}
             />
           ))}
+          {/* "+ Add food" tile at end of grid */}
+          {!showNutrition
+            ?<div onClick={()=>onAdd([...(activeCat!=="all"?[activeCat]:[])].filter(Boolean))} style={{aspectRatio:"1",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,borderRadius:12,border:"2px dashed "+T.lineS,background:"transparent",color:T.faint}}>
+                <span style={{fontSize:24}}>+</span>
+                <span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em",textAlign:"center",lineHeight:1.2}}>{activeCat!=="all"?catById[activeCat]?.name:"New"}</span>
+              </div>
+            :<div onClick={()=>onAdd([...(activeCat!=="all"?[activeCat]:[])].filter(Boolean))} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:12,background:"transparent",border:"2px dashed "+T.lineS,borderRadius:14,minHeight:80,padding:"0 16px",color:T.faint}}>
+                <span style={{fontSize:28}}>+</span>
+                <div>
+                  <p style={{fontWeight:700,fontSize:13,margin:"0 0 2px",color:T.soft}}>Add food{activeCat!=="all"?" to "+catById[activeCat]?.name:""}</p>
+                  {activeSubcat&&<p style={{fontSize:11,margin:0}}>in {activeSubcat.label}</p>}
+                </div>
+              </div>}
         </div>
       }
 
