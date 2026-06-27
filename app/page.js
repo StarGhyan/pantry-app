@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 
 /* ── palette ── */
@@ -1218,7 +1219,42 @@ function migrateStoredData() {
 migrateStoredData();
 
 export default function App() {
-  const [section, setSection] = useState("nutrition"); // "nutrition" | "workout"
+  const [section, setSection] = useState("nutrition");
+
+  /* ── AUTH ── */
+  const [user, setUser] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | syncing | synced | error
+  const syncTimer = useRef(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({data:{session}}) => setUser(session?.user ?? null));
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) loadFromSupabase(session.user.id);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function loadFromSupabase(userId) {
+    try {
+      const {data, error} = await supabase.from("user_data").select("data").eq("user_id", userId).single();
+      if (error || !data?.data) return;
+      const d = data.data;
+      if (d.foods)       setFoods(d.foods);
+      if (d.cats)        setCats(d.cats);
+      if (d.recipes)     setRecipes(d.recipes);
+      if (d.plan)        setPlan(d.plan);
+      if (d.stock)       setStock(d.stock);
+      if (d.shopping)    setShopping(d.shopping);
+      if (d.tasks)       setTasks(d.tasks);
+      if (d.w_exercises) setExercises(d.w_exercises);
+      if (d.w_cats)      setWCats(d.w_cats);
+      if (d.routines)    setRoutines(d.routines);
+      if (d.w_plan)      setWPlan(d.w_plan);
+      setSyncStatus("synced");
+    } catch {}
+  }
 
   /* ── NUTRITION STATE ── */
   const [foods, setFoods] = useState(() => load("foods", buildSeedFoods()));
@@ -1266,6 +1302,23 @@ export default function App() {
   useEffect(()=>save("w_cats",wCats),[wCats]);
   useEffect(()=>save("w_routines",routines),[routines]);
   useEffect(()=>save("w_plan",wPlan),[wPlan]);
+
+  /* ── SUPABASE SYNC (debounced 3s after any state change) ── */
+  const syncToSupabase = useCallback(() => {
+    if (!user) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    setSyncStatus("syncing");
+    syncTimer.current = setTimeout(async () => {
+      try {
+        const payload = { foods, cats, recipes, plan, stock, shopping, tasks,
+          w_exercises: exercises, w_cats: wCats, routines, w_plan: wPlan };
+        await supabase.from("user_data").upsert({ user_id: user.id, data: payload });
+        setSyncStatus("synced");
+      } catch { setSyncStatus("error"); }
+    }, 3000);
+  }, [user, foods, cats, recipes, plan, stock, shopping, tasks, exercises, wCats, routines, wPlan]);
+
+  useEffect(() => { syncToSupabase(); }, [syncToSupabase]);
 
   function flash(msg){setToast(msg);setTimeout(()=>setToast(null),2000);}
 
@@ -1366,7 +1419,21 @@ export default function App() {
         display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"system-ui,sans-serif",
         transition:"background 0.15s,color 0.15s",
       }}><span style={{fontSize:22}}>{s.emoji}</span><span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.03em"}}>{s.label}</span></button>;})}
+
+      {/* Auth button at bottom of sidebar */}
+      <div style={{marginTop:"auto",paddingBottom:16,width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+        {user&&syncStatus==="syncing"&&<span style={{fontSize:8,color:"rgba(255,255,255,0.4)"}}>syncing…</span>}
+        {user&&syncStatus==="synced"&&<span style={{fontSize:8,color:"rgba(255,255,255,0.4)"}}>✓ synced</span>}
+        <button onClick={()=>setShowAuth(true)} title={user?user.email:"Sign in"} style={{
+          width:40,height:40,borderRadius:"50%",border:"1.5px solid rgba(255,255,255,0.3)",
+          background:user?"rgba(255,255,255,0.18)":"transparent",cursor:"pointer",
+          color:"#FBF7EE",fontSize:user?13:18,fontWeight:700,fontFamily:"system-ui,sans-serif",
+          display:"flex",alignItems:"center",justifyContent:"center",
+        }}>{user?(user.email[0].toUpperCase()):"👤"}</button>
+      </div>
     </div>
+    {showAuth&&<AuthModal user={user} onClose={()=>setShowAuth(false)}
+      onLogin={()=>setShowAuth(false)} onLogout={()=>{supabase.auth.signOut();setShowAuth(false);}}/>}
 
     {/* Main content */}
     <div className="app-main">
@@ -2472,10 +2539,12 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
   const [viewServings,setViewServings]=useState(recipe.servings||1); // calculator in view mode
   const [showPicker,setShowPicker]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [steps,setSteps]=useState(recipe.steps||[]);
 
   useEffect(()=>{
     setName(recipe.name);setImage(recipe.image);setIngs(recipe.ingredients);
     setServings(recipe.servings||1);setViewServings(recipe.servings||1);
+    setSteps(recipe.steps||[]);
   },[recipe.id,mode]);
 
   const foodsMap=useMemo(()=>{const m={};foods.forEach(f=>m[f.id]=f);return m;},[foods]);
@@ -2500,7 +2569,7 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
   })();
 
   const canSave=!!name.trim()&&ings.length>0;
-  function build(){return{id:recipe.id,name:name.trim(),image,servings:baseServings,ingredients:ings};}
+  function build(){return{id:recipe.id,name:name.trim(),image,servings:baseServings,ingredients:ings,steps};}
 
   return <Modal onClose={()=>canSave&&editing?onSaveClose(build()):onClose()} width={560}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:10}}>
@@ -2577,7 +2646,69 @@ function RecipeModal({recipe,mode,foods,cats,catById,totals,onClose,onEdit,onSav
         :<span style={{fontFamily:"monospace",fontSize:13,fontWeight:500,flexShrink:0}}>{fmtAmt(ing.amount,u,ri.nutrition)}</span>}
       </div>;})}
     </div>}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap"}}>
+    {/* ── Steps ── */}
+    <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid "+T.line}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <p style={{fontWeight:700,fontSize:14,margin:0}}>Steps</p>
+        {editing&&<Btn variant="ghost" icon="+" onClick={()=>setSteps(prev=>[...prev,{id:uid("stp"),text:"",ingIdxs:[]}])}>Add step</Btn>}
+      </div>
+
+      {/* View mode */}
+      {!editing&&steps.length===0&&<p style={{fontSize:12,color:T.faint,margin:0}}>No steps added yet.</p>}
+      {!editing&&steps.length>0&&<div style={{display:"flex",flexDirection:"column",gap:16}}>
+        {steps.map((step,si)=>{
+          const stepIngs=(step.ingIdxs||[]).map(idx=>ings[idx]).filter(Boolean).map(ing=>resolveIng(ing,foodsMap));
+          return <div key={step.id} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:T.sageD,color:"#FBF7EE",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,flexShrink:0,marginTop:2}}>{si+1}</div>
+            <div style={{flex:1}}>
+              <p style={{margin:"0 0 8px",fontSize:14,lineHeight:1.55,color:T.ink}}>{step.text||<span style={{color:T.faint,fontStyle:"italic"}}>No description</span>}</p>
+              {stepIngs.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                {stepIngs.map((ri,ii)=><div key={ii} style={{display:"flex",alignItems:"center",gap:5,background:T.cream,borderRadius:8,padding:"3px 9px 3px 5px",border:"1px solid "+T.line}}>
+                  {ri.image?<img src={ri.image} alt="" style={{width:22,height:22,borderRadius:5,objectFit:"cover",flexShrink:0}}/>:<span style={{fontSize:17,flexShrink:0}}>{ri.emoji||"🍽"}</span>}
+                  <span style={{fontSize:11,fontWeight:600,color:T.ink}}>{ri.name}</span>
+                </div>)}
+              </div>}
+            </div>
+          </div>;
+        })}
+      </div>}
+
+      {/* Edit mode */}
+      {editing&&<>
+        {steps.length===0&&<p style={{fontSize:12,color:T.faint,textAlign:"center",padding:"6px 0"}}>No steps yet — add steps to guide cooking.</p>}
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {steps.map((step,si)=><div key={step.id} style={{background:T.cream,borderRadius:12,padding:"10px 12px",border:"1px solid "+T.line}}>
+            <div style={{display:"flex",gap:8,marginBottom:8,alignItems:"flex-start"}}>
+              <div style={{width:24,height:24,borderRadius:"50%",background:T.sageD,color:"#FBF7EE",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0,marginTop:4}}>{si+1}</div>
+              <textarea value={step.text} onChange={e=>setSteps(prev=>prev.map((s,i)=>i===si?{...s,text:e.target.value}:s))}
+                placeholder="Describe this step…"
+                style={{...IS({flex:1,fontSize:13,padding:"6px 8px",resize:"vertical"}),height:56,lineHeight:1.4}}/>
+              <button onClick={()=>setSteps(prev=>prev.filter((_,i)=>i!==si))} style={{width:28,height:28,borderRadius:7,border:"1px solid "+T.danger+"44",background:"transparent",color:T.danger,cursor:"pointer",fontSize:14,flexShrink:0}}>×</button>
+            </div>
+            {ings.length>0&&<div>
+              <p style={{fontSize:10,fontWeight:700,color:T.faint,textTransform:"uppercase",letterSpacing:"0.04em",margin:"0 0 5px"}}>Ingredients used in this step</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {ings.map((ing,ingIdx)=>{
+                  const ri=resolveIng(ing,foodsMap);
+                  const isIn=(step.ingIdxs||[]).includes(ingIdx);
+                  return <button key={ingIdx} onClick={()=>setSteps(prev=>prev.map((s,i)=>i===si?{...s,ingIdxs:isIn?s.ingIdxs.filter(x=>x!==ingIdx):[...(s.ingIdxs||[]),ingIdx]}:s))} style={{
+                    display:"flex",alignItems:"center",gap:4,padding:"3px 9px",borderRadius:8,cursor:"pointer",
+                    fontSize:11,fontWeight:600,fontFamily:"system-ui,sans-serif",
+                    border:isIn?"1.5px solid "+T.sageD:"1px solid "+T.line,
+                    background:isIn?T.sage:"transparent",color:isIn?T.sageD:T.soft,
+                  }}>
+                    <span style={{fontSize:16}}>{ri.emoji||"🍽"}</span>
+                    {ri.name.split(" - ")[0].split(" ").slice(0,2).join(" ")}
+                  </button>;
+                })}
+              </div>
+            </div>}
+          </div>)}
+        </div>
+      </>}
+    </div>
+
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,paddingTop:14,borderTop:"1px solid "+T.line,flexWrap:"wrap",marginTop:14}}>
       {!editing?<><DelBtn label="Delete recipe" onConfirm={onDelete}/>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           {onFork&&<Btn variant="ghost" onClick={onFork}>Use this time</Btn>}
@@ -3555,6 +3686,41 @@ const TASK_CATS = {
   personal: {label:"Personal", emoji:"🎯", hex:"#9A5A7A", soft:"#EFDFE8"},
 };
 
+const TASK_PRESETS = {
+  chores: {
+    "Clean": {
+      "Bathroom":   ["Scrub toilet","Clean sink","Clean mirror","Mop floor","Replace towels","Clean shower"],
+      "Kitchen":    ["Wash dishes","Clean counters","Clean stove","Mop floor","Empty trash","Clean fridge"],
+      "Living room":["Vacuum","Dust surfaces","Organize","Clean windows","Wipe surfaces"],
+      "Bedroom":    ["Make bed","Vacuum","Dust","Organize closet","Change sheets"],
+      "General":    ["Vacuum all rooms","Mop floors","Take out trash","Do laundry","Clean doors"],
+    },
+    "Prepare": {
+      "Food":       ["Meal prep","Make lunch","Cook dinner","Make breakfast","Prep snacks"],
+      "Home":       ["Set table","Prepare shopping list","Set up guest room"],
+    },
+    "Organize": {
+      "Clothes":    ["Fold laundry","Organize closet","Sort donations","Iron clothes"],
+      "Home":       ["Declutter","File documents","Organize pantry","Sort mail"],
+    },
+    "Errands":      ["Grocery shopping","Post office","Bank","Pharmacy","Pay bills"],
+  },
+  work: {
+    "Write":        ["Report","Email","Presentation","Proposal","Summary","Meeting notes"],
+    "Plan":         ["Weekly schedule","Project timeline","Meeting agenda","Goal setting"],
+    "Organize":     ["Files","Emails","Calendar","Documents","Desktop"],
+    "Research":     ["Topic research","Market research","Competitor analysis","Data collection"],
+    "Meetings":     ["Team standup","Client call","1:1","Review session"],
+  },
+  personal: {
+    "Self-care":    ["Shower","Skin care","Hair care","Meditation","Journaling","Stretching"],
+    "Social":       ["Call friend","Text family","Plan meetup","Date night","Check in with someone"],
+    "Growth":       ["Reading","Online course","Learn new skill","Watch documentary"],
+    "Health":       ["Doctor appointment","Take vitamins","Workout","Drink water","Sleep early"],
+    "Errands":      ["Grocery shopping","Bank","Post office","Pick up prescription"],
+  }
+};
+
 function TasksSection({tasks,activeTab,onAdd,onToggle,onDelete,onUpdate}){
   const [showAdd,setShowAdd]=useState(false);
   const [editTask,setEditTask]=useState(null);
@@ -3622,8 +3788,9 @@ function TasksSection({tasks,activeTab,onAdd,onToggle,onDelete,onUpdate}){
             </button>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontWeight:600,fontSize:14,margin:"0 0 5px",textDecoration:task.done?"line-through":"none",color:task.done?T.faint:T.ink,wordBreak:"break-word"}}>{task.title}</p>
-              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
                 <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:4,background:cat.soft,color:cat.hex}}>{cat.emoji} {cat.label}</span>
+                {task.subCategory&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:T.cream,color:T.soft}}>{task.subCategory}</span>}
                 {task.dueDate&&<span style={{fontSize:11,fontWeight:isOverdue||isToday?700:400,color:isOverdue?T.danger:isToday?"#C4683D":isSoon?"#8C7A3D":T.faint}}>
                   {isOverdue?`Overdue ${Math.abs(d)}d`:isToday?"Due today":isSoon?`Due in ${d}d`:`Due ${new Date(task.dueDate+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`}
                 </span>}
@@ -3645,35 +3812,99 @@ function TasksSection({tasks,activeTab,onAdd,onToggle,onDelete,onUpdate}){
 }
 
 function AddTaskModal({task,onSave,onClose}){
-  const [title,setTitle]=useState(task?.title||"");
   const [category,setCategory]=useState(task?.category||"personal");
+  const [subCategory,setSubCategory]=useState(task?.subCategory||"");
+  const [title,setTitle]=useState(task?.title||"");
   const [dueDate,setDueDate]=useState(task?.dueDate||"");
   const [notes,setNotes]=useState(task?.notes||"");
-  return <Modal onClose={onClose} width={440}>
+
+  const presets=TASK_PRESETS[category]||{};
+  // If presets is nested (chores), flatten to subcat→items; if flat (work/personal), subcat is key, items is value
+  const subCats=Object.keys(presets);
+  const getItems=(sub)=>{
+    const val=presets[sub];
+    if(!val) return [];
+    if(Array.isArray(val)) return val;
+    // nested: val is {Room:[...], ...}
+    return Object.entries(val).flatMap(([room,items])=>items.map(t=>`${room}: ${t}`));
+  };
+  const currentItems=subCategory?getItems(subCategory):[];
+
+  // For chores: nested structure → show room chips when subcategory is "Clean"
+  const isNested=subCategory&&!Array.isArray(presets[subCategory]);
+  const nestedRooms=isNested?Object.keys(presets[subCategory]||{}):[];
+  const [nestedRoom,setNestedRoom]=useState("");
+  const leafItems=nestedRoom&&isNested?(presets[subCategory]||{})[nestedRoom]||[]:(!isNested?currentItems:[]);
+
+  function selectPreset(t){setTitle(t);}
+
+  return <Modal onClose={onClose} width={460}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
       <h3 style={{margin:0}}>{task?"Edit task":"Add task"}</h3><CloseBtn onClick={onClose}/>
     </div>
+
+    {/* Category */}
+    <Label>Category</Label>
+    <div style={{display:"flex",gap:6,marginBottom:14}}>
+      {Object.entries(TASK_CATS).map(([id,cat])=>{const a=category===id;return(
+        <button key={id} onClick={()=>{setCategory(id);setSubCategory("");setNestedRoom("");setTitle("");}} style={{
+          flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"8px",
+          borderRadius:10,cursor:"pointer",fontFamily:"system-ui,sans-serif",fontWeight:600,fontSize:13,
+          border:a?"1.5px solid "+cat.hex:"1px solid "+T.line,background:a?cat.soft:"transparent",color:a?cat.hex:T.soft,
+        }}><span style={{fontSize:16}}>{cat.emoji}</span>{cat.label}</button>
+      );})}
+    </div>
+
+    {/* SubCategory chips */}
+    {subCats.length>0&&<>
+      <Label>Type</Label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+        {subCats.map(s=>{const a=subCategory===s;const cat=TASK_CATS[category];return(
+          <button key={s} onClick={()=>{setSubCategory(s);setNestedRoom("");setTitle("");}} style={{
+            padding:"4px 11px",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:600,
+            fontFamily:"system-ui,sans-serif",
+            border:a?"1.5px solid "+cat.hex:"1px solid "+T.line,background:a?cat.soft:"transparent",color:a?cat.hex:T.soft,
+          }}>{s}</button>
+        );})}
+      </div>
+    </>}
+
+    {/* Room/sub-sub chips (for chores nested) */}
+    {isNested&&nestedRooms.length>0&&<>
+      <Label>Where / What</Label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+        {nestedRooms.map(r=>{const a=nestedRoom===r;const cat=TASK_CATS[category];return(
+          <button key={r} onClick={()=>{setNestedRoom(r);setTitle("");}} style={{
+            padding:"4px 11px",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:600,
+            fontFamily:"system-ui,sans-serif",
+            border:a?"1.5px solid "+cat.hex:"1px solid "+T.line,background:a?cat.soft:"transparent",color:a?cat.hex:T.soft,
+          }}>{r}</button>
+        );})}
+      </div>
+    </>}
+
+    {/* Preset tasks */}
+    {leafItems.length>0&&!title&&<>
+      <Label>Quick-pick</Label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+        {leafItems.map(t=><button key={t} onClick={()=>selectPreset(t)} style={{
+          padding:"4px 11px",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:600,
+          fontFamily:"system-ui,sans-serif",border:"1px solid "+T.line,background:T.cream,color:T.ink,
+        }}>{t}</button>)}
+      </div>
+    </>}
+
+    {/* Title input */}
+    <Label>Task</Label>
     <input autoFocus value={title} onChange={e=>setTitle(e.target.value)}
-      placeholder="What needs to be done?" style={IS({marginBottom:12,fontSize:16,fontWeight:600})}
-      onKeyDown={e=>{if(e.key==="Enter"&&title.trim()){onSave({title:title.trim(),category,dueDate:dueDate||null,notes:notes.trim()});}}}/>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-      <div><Label>Category</Label>
-        <select value={category} onChange={e=>setCategory(e.target.value)} style={IS({})}>
-          <option value="work">💼 Work</option>
-          <option value="chores">🧹 Chores</option>
-          <option value="personal">🎯 Personal</option>
-        </select>
-      </div>
-      <div><Label>Due date</Label>
-        <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} style={IS({})}/>
-      </div>
+      placeholder="What needs to be done?" style={IS({marginBottom:10,fontSize:15,fontWeight:600})}
+      onKeyDown={e=>{if(e.key==="Enter"&&title.trim()){onSave({title:title.trim(),category,subCategory,dueDate:dueDate||null,notes:notes.trim()});}}}/>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+      <div><Label>Due date</Label><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} style={IS({})}/></div>
+      <div><Label>Notes</Label><input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Optional…" style={IS({})}/></div>
     </div>
-    <div style={{marginBottom:16}}>
-      <Label>Notes (optional)</Label>
-      <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add a note…"
-        style={{...IS({}),height:72,resize:"vertical",lineHeight:1.5}}/>
-    </div>
-    <Btn full disabled={!title.trim()} onClick={()=>onSave({title:title.trim(),category,dueDate:dueDate||null,notes:notes.trim()})}>
+    <Btn full disabled={!title.trim()} onClick={()=>onSave({title:title.trim(),category,subCategory:nestedRoom?`${subCategory} · ${nestedRoom}`:subCategory,dueDate:dueDate||null,notes:notes.trim()})}>
       {task?"Save changes":"Add task"}
     </Btn>
   </Modal>;
@@ -3752,4 +3983,59 @@ function BodyMap({selectedTags}){
     </svg>
     {selectedTags.length===0&&<p style={{textAlign:"center",fontSize:11,color:T.faint,margin:"6px 0 0"}}>Select exercises to see muscles highlighted</p>}
   </div>;
+}
+
+/* ── Auth Modal ── */
+function AuthModal({user,onClose,onLogin,onLogout}){
+  const [mode,setMode]=useState("login"); // login | signup
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [msg,setMsg]=useState("");
+
+  async function handleSubmit(){
+    if(!email.trim()||!password.trim()) return;
+    setLoading(true); setMsg("");
+    try{
+      let err;
+      if(mode==="signup"){
+        ({error:err}=await supabase.auth.signUp({email:email.trim(),password}));
+        if(!err) setMsg("Check your email to confirm your account, then log in.");
+      } else {
+        ({error:err}=await supabase.auth.signInWithPassword({email:email.trim(),password}));
+        if(!err) onLogin();
+      }
+      if(err) setMsg(err.message);
+    } catch(e){ setMsg(e.message||"Something went wrong"); }
+    setLoading(false);
+  }
+
+  return <Modal onClose={onClose} width={380}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <h3 style={{margin:0}}>{user?"Account":mode==="login"?"Sign in":"Create account"}</h3>
+      <CloseBtn onClick={onClose}/>
+    </div>
+
+    {user ? <>
+      <div style={{background:T.cream,borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+        <p style={{fontWeight:700,fontSize:14,margin:"0 0 4px"}}>{user.email}</p>
+        <p style={{fontSize:12,color:T.soft,margin:0}}>Your data syncs automatically across all your devices.</p>
+      </div>
+      <Btn full variant="ghost" onClick={onLogout}>Sign out</Btn>
+    </> : <>
+      <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+        placeholder="Email" style={IS({marginBottom:10})} autoFocus
+        onKeyDown={e=>{if(e.key==="Enter") document.getElementById("pw-input")?.focus();}}/>
+      <input type="password" id="pw-input" value={password} onChange={e=>setPassword(e.target.value)}
+        placeholder="Password" style={IS({marginBottom:msg?8:16})}
+        onKeyDown={e=>{if(e.key==="Enter") handleSubmit();}}/>
+      {msg&&<p style={{fontSize:12,color:msg.includes("Check")?T.sageD:T.danger,margin:"0 0 12px",lineHeight:1.4}}>{msg}</p>}
+      <Btn full disabled={loading||!email.trim()||!password.trim()} onClick={handleSubmit}>
+        {loading?"…":mode==="login"?"Sign in":"Create account"}
+      </Btn>
+      <p style={{textAlign:"center",fontSize:12,color:T.soft,marginTop:12,cursor:"pointer"}} onClick={()=>{setMode(m=>m==="login"?"signup":"login");setMsg("");}}>
+        {mode==="login"?"Don't have an account? Sign up →":"Already have an account? Sign in →"}
+      </p>
+    </>}
+  </Modal>;
 }
