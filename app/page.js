@@ -56,11 +56,11 @@ const DEFAULT_CATEGORIES = [
 const SUBCATS = {
   meat: [
     { id: "chicken", label: "Chicken", emoji: "🍗" },
-    { id: "beef",    label: "Beef",    emoji: "🥩" },
+    { id: "beef",    label: "Beef",    emoji: "🐄" },
     { id: "ground",  label: "Ground beef", emoji: "🍔", names: ["ground beef"] },
-    { id: "pork",    label: "Pork",    emoji: "🥓" },
+    { id: "pork",    label: "Pork",    emoji: "🐷" },
     { id: "turkey",  label: "Turkey",  emoji: "🦃" },
-    { id: "lamb",    label: "Lamb",    emoji: "🍖" },
+    { id: "lamb",    label: "Lamb",    emoji: "🐑" },
   ],
   fish: [
     { id: "salmon",  label: "Salmon",  emoji: "🐟" },
@@ -1682,7 +1682,11 @@ function Pantry({ foods, cats, catById, onOpen, onAdd, onManageCats, onMakeRecip
       {anyPopupOpen && (
         <div onClick={closePopups} style={{ position: "fixed", inset: 0, zIndex: 15, background: "transparent" }} />
       )}
-      <input placeholder="Search foods..." value={q} onChange={e => setQ(e.target.value)} style={IS({ marginBottom: 10 })} />
+      <div style={{position:"relative",marginBottom:10}}>
+        <input placeholder="Search foods…" value={q} onChange={e=>setQ(e.target.value)}
+          style={IS({paddingRight:q?36:12,marginBottom:0})}/>
+        {q&&<button onClick={()=>setQ("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:T.faint,fontSize:20,lineHeight:1,padding:0,fontFamily:"system-ui,sans-serif"}}>×</button>}
+      </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
         <button onClick={() => setShowNutrition(s => !s)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", border: "1px solid " + T.lineS, borderRadius: 9, fontSize: 13, fontWeight: 600, background: showNutrition ? T.sageD : T.raised, color: showNutrition ? "#FBF7EE" : T.ink, cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>
           {showNutrition ? "Nutrition on" : "Nutrition off"}
@@ -1778,6 +1782,7 @@ function QuickPickPopup({ food, onSelect, onClose }) {
       {amtLabel && <p style={{fontSize:10,color:T.soft,margin:"0 0 8px",fontFamily:"monospace"}}>{amtLabel}</p>}
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         <input type="number" value={amt} onChange={e => setAmt(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter") onSelect(amt||defaultAmt,unit);}}
           style={IS({ width: 70, padding: "5px 8px", fontSize: 14, fontFamily: "monospace" })} autoFocus />
         <select value={unit} onChange={e=>{setUnit(e.target.value);setAmt(e.target.value==="unit"?"1":String(Number(n.portion)||100));}} style={IS({ padding: "5px 6px", fontSize: 13, width: "auto" })}>
           {hasCount && <option value="unit">ct</option>}
@@ -1808,7 +1813,7 @@ function FoodCard({ food, catById, showNutrition, selected, contextOpen, quickPi
   const portion = Number(n.portion) || 100;
   const unit = n.unit || "g";
   const f = portionToG(portion, unit) / 100;
-  const tags = food.tags || [];
+  const tags = [...new Set(food.tags || [])];
   const firstCat = tags.length > 0 && catById[tags[0]] ? catById[tags[0]] : null;
   const p = firstCat ? firstCat.palette : null;
   const emoji = food.emoji || "🍽";
@@ -1892,7 +1897,7 @@ function FoodCard({ food, catById, showNutrition, selected, contextOpen, quickPi
 
         {contextOpen && !quickPickOpen && <Popup />}
         {quickPickOpen && (
-          <div onClick={e => e.stopPropagation()} style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 25, marginTop: 4 }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: "100%", left: 0, right: 0, zIndex: 25, marginBottom: 4 }}>
             <QuickPickPopup food={food} onSelect={onSelect} onClose={onCloseQuickPick} />
           </div>
         )}
@@ -1934,7 +1939,7 @@ function FoodCard({ food, catById, showNutrition, selected, contextOpen, quickPi
 
       {contextOpen && !quickPickOpen && <Popup />}
       {quickPickOpen && (
-        <div onClick={e => e.stopPropagation()} style={{ position: "absolute", right: 0, top: "100%", zIndex: 25, marginTop: 4 }}>
+        <div onClick={e => e.stopPropagation()} style={{ position: "absolute", right: 0, bottom: "100%", zIndex: 25, marginBottom: 4 }}>
           <QuickPickPopup food={food} onSelect={onSelect} onClose={onCloseQuickPick} />
         </div>
       )}
@@ -2972,7 +2977,11 @@ function WorkoutExercises({exercises,cats,catById,onOpen,onAdd,onManageCats,onMa
   return <div>
     {anyPopup&&<div onClick={closePopups} style={{position:"fixed",inset:0,zIndex:15,background:"transparent"}}/>}
     {hasTray&&<BodyMap selectedTags={selectedTags}/>}
-    <input placeholder="Search exercises..." value={q} onChange={e=>setQ(e.target.value)} style={IS({marginBottom:10})}/>
+    <div style={{position:"relative",marginBottom:10}}>
+      <input placeholder="Search exercises…" value={q} onChange={e=>setQ(e.target.value)}
+        style={IS({paddingRight:q?36:12,marginBottom:0})}/>
+      {q&&<button onClick={()=>setQ("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",cursor:"pointer",color:T.faint,fontSize:20,lineHeight:1,padding:0,fontFamily:"system-ui,sans-serif"}}>×</button>}
+    </div>
     <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
       <div style={{flex:1}}/>
       <button onClick={onManageCats} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"7px 14px",border:"1px solid "+T.lineS,borderRadius:9,fontSize:13,fontWeight:600,background:T.raised,color:T.ink,cursor:"pointer",fontFamily:"system-ui,sans-serif"}}>Edit categories</button>
@@ -3033,7 +3042,7 @@ function ExCard({ex,catById,selected,contextOpen,quickPickOpen,onView,onContextT
     </div>
     <div style={{height:3,background:p?p.hex:T.lineS,borderRadius:"0 0 14px 14px",flexShrink:0}}/>
     {contextOpen&&!quickPickOpen&&<Popup/>}
-    {quickPickOpen&&<div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"100%",left:0,right:0,zIndex:25,marginTop:4}}>
+    {quickPickOpen&&<div onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:"100%",left:0,right:0,zIndex:25,marginBottom:4}}>
       <ExQuickPick ex={ex} onSelect={onSelect} onClose={onCloseQuickPick}/>
     </div>}
   </div>;
@@ -3053,27 +3062,31 @@ function ExQuickPick({ex,onSelect,onClose}){
 
   return <div style={{background:T.raised,border:"1.5px solid "+T.sageD,borderRadius:14,padding:"12px 14px",width:260,boxShadow:"0 8px 24px rgba(0,0,0,0.18)"}}>
     <p style={{fontWeight:700,fontSize:13,margin:"0 0 8px",color:T.ink}}>{ex.emoji} {ex.name}</p>
-    {isCardio
-      ?<div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
-        <input type="number" value={duration} onChange={e=>setDuration(e.target.value)} style={IS({width:70,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})} autoFocus/>
-        <span style={{fontSize:12,color:T.soft,fontWeight:600}}>minutes</span>
-      </div>
-      :<>
-        <div style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
-          <input type="number" value={weight} onChange={e=>setWeight(e.target.value)} style={IS({width:70,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})} autoFocus/>
-          <select value={wUnit} onChange={e=>setWUnit(e.target.value)} style={IS({padding:"5px 6px",fontSize:13,width:"auto"})}>
-            <option value="lb">lb</option><option value="kg">kg</option>
-          </select>
-          <span style={{fontSize:11,color:T.faint}}>weight</span>
+    {(()=>{
+      const doSelect=()=>onSelect(isCardio?{duration:Number(duration)||30,cal}:{weight:Number(weight)||0,wUnit,reps:Number(reps)||10,sets:Number(sets)||3,cal});
+      const onEnter=e=>{if(e.key==="Enter")doSelect();};
+      return isCardio
+        ?<div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
+          <input type="number" value={duration} onChange={e=>setDuration(e.target.value)} onKeyDown={onEnter} style={IS({width:70,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})} autoFocus/>
+          <span style={{fontSize:12,color:T.soft,fontWeight:600}}>minutes</span>
         </div>
-        <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
-          <input type="number" value={reps} onChange={e=>setReps(e.target.value)} style={IS({width:55,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})}/>
-          <span style={{fontSize:11,color:T.faint}}>reps</span>
-          <span style={{color:T.lineS}}>x</span>
-          <input type="number" value={sets} onChange={e=>setSets(e.target.value)} style={IS({width:55,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})}/>
-          <span style={{fontSize:11,color:T.faint}}>sets</span>
-        </div>
-      </>}
+        :<>
+          <div style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+            <input type="number" value={weight} onChange={e=>setWeight(e.target.value)} onKeyDown={onEnter} style={IS({width:70,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})} autoFocus placeholder="0"/>
+            <select value={wUnit} onChange={e=>setWUnit(e.target.value)} style={IS({padding:"5px 6px",fontSize:13,width:"auto"})}>
+              <option value="lb">lb</option><option value="kg">kg</option>
+            </select>
+            <span style={{fontSize:11,color:T.faint}}>weight</span>
+          </div>
+          <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
+            <input type="number" value={reps} onChange={e=>setReps(e.target.value)} onKeyDown={onEnter} style={IS({width:55,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})}/>
+            <span style={{fontSize:11,color:T.faint}}>reps</span>
+            <span style={{color:T.lineS}}>x</span>
+            <input type="number" value={sets} onChange={e=>setSets(e.target.value)} onKeyDown={onEnter} style={IS({width:55,padding:"5px 8px",fontSize:14,fontFamily:"monospace"})}/>
+            <span style={{fontSize:11,color:T.faint}}>sets</span>
+          </div>
+        </>;
+    })()}
     <div style={{background:T.cream,borderRadius:8,padding:"7px 10px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <span style={{fontSize:12,fontWeight:600,color:T.soft}}>Est. calories</span>
       <span style={{fontFamily:"monospace",fontSize:16,fontWeight:700,color:T.tc}}>{cal} cal</span>
@@ -3081,7 +3094,7 @@ function ExQuickPick({ex,onSelect,onClose}){
     <div style={{display:"flex",gap:6}}>
       <button onClick={onClose} style={{flex:1,padding:"7px",border:"1px solid "+T.lineS,borderRadius:8,background:"transparent",cursor:"pointer",fontSize:12,fontFamily:"system-ui,sans-serif"}}>Cancel</button>
       <button onClick={()=>onSelect(isCardio?{duration:Number(duration)||30,cal}:{weight:Number(weight)||0,wUnit,reps:Number(reps)||10,sets:Number(sets)||3,cal})}
-        style={{flex:2,padding:"7px",border:"none",borderRadius:8,background:T.sageD,color:"#FBF7EE",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"system-ui,sans-serif"}}>+ Select</button>
+        style={{flex:2,padding:"8px",border:"none",borderRadius:8,background:T.sageD,color:"#FBF7EE",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"system-ui,sans-serif"}}>+ Select ↵</button>
     </div>
   </div>;
 }
