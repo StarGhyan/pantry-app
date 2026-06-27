@@ -3780,6 +3780,7 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
   onAddCollection,onUpdateCollection,onDeleteCollection,onAddTaskToCollection,onRemoveTaskFromCollection,
   onAddTaskToDay,onRemoveTaskFromDay}){
   const [showAdd,setShowAdd]=useState(false);
+  const [addInitCat,setAddInitCat]=useState("personal");
   const [editTask,setEditTask]=useState(null);
   const [catFilter,setCatFilter]=useState("all"); // within Tasks tab
 
@@ -3837,7 +3838,7 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
         <span style={{fontSize:12,fontWeight:700,color:T.danger}}>⚠️ {overdue} task{overdue!==1?"s":""} overdue</span>
       </div>}
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-        <Btn icon="+" onClick={()=>setShowAdd(true)}>Add task</Btn>
+        <Btn icon="+" onClick={()=>{setAddInitCat(catFilter==="all"?"personal":catFilter);setShowAdd(true);}}>Add task</Btn>
       </div>
     </>}
     {activeTab==="done"&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -3888,14 +3889,14 @@ function TasksSection({tasks,collections,taskPlan,activeTab,onAdd,onToggle,onDel
         })}
       </div>}
 
-    {(showAdd||editTask)&&<AddTaskModal task={editTask}
+    {(showAdd||editTask)&&<AddTaskModal task={editTask} initialCategory={editTask?editTask.category:addInitCat}
       onSave={data=>{editTask?onUpdate(editTask.id,data):onAdd(data);setShowAdd(false);setEditTask(null);}}
       onClose={()=>{setShowAdd(false);setEditTask(null);}}/>}
   </div>;
 }
 
-function AddTaskModal({task,onSave,onClose}){
-  const [category,setCategory]=useState(task?.category||"personal");
+function AddTaskModal({task,initialCategory,onSave,onClose}){
+  const [category,setCategory]=useState(task?.category||initialCategory||"personal");
   const [subCategory,setSubCategory]=useState(task?.subCategory||"");
   const [title,setTitle]=useState(task?.title||"");
   const [dueDate,setDueDate]=useState(task?.dueDate||"");
@@ -3939,18 +3940,18 @@ function AddTaskModal({task,onSave,onClose}){
     </div>
 
     {/* SubCategory chips */}
-    {subCats.length>0&&<>
-      <Label>Type</Label>
-      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
-        {subCats.map(s=>{const a=subCategory===s;const cat=TASK_CATS[category];return(
-          <button key={s} onClick={()=>{setSubCategory(s);setNestedRoom("");setTitle("");}} style={{
-            padding:"4px 11px",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:600,
-            fontFamily:"system-ui,sans-serif",
-            border:a?"1.5px solid "+cat.hex:"1px solid "+T.line,background:a?cat.soft:"transparent",color:a?cat.hex:T.soft,
-          }}>{s}</button>
-        );})}
-      </div>
-    </>}
+    <Label>Type</Label>
+    {subCats.length>0&&<div className="scroll-x" style={{display:"flex",gap:5,marginBottom:7,paddingBottom:2}}>
+      {subCats.map(s=>{const a=subCategory===s;const cat=TASK_CATS[category];return(
+        <button key={s} onClick={()=>{setSubCategory(s);setNestedRoom("");setTitle("");}} style={{
+          flexShrink:0,padding:"4px 11px",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:600,
+          fontFamily:"system-ui,sans-serif",
+          border:a?"1.5px solid "+cat.hex:"1px solid "+T.line,background:a?cat.soft:"transparent",color:a?cat.hex:T.soft,
+        }}>{s}</button>
+      );})}
+    </div>}
+    <input value={subCategory} onChange={e=>{setSubCategory(e.target.value);setNestedRoom("");}}
+      placeholder="Or type your own type / topic…" style={IS({fontSize:13,marginBottom:10})}/>
 
     {/* Room/sub-sub chips (for chores nested) */}
     {isNested&&nestedRooms.length>0&&<>
