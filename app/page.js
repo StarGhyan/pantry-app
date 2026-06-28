@@ -98,7 +98,7 @@ const SUBCATS = {
   fruit: [
     { id: "tropical",label: "Tropical",    emoji: "🥭", names: ["mango","pineapple","banana","watermelon","coconut"] },
     { id: "citrus",  label: "Citrus",      emoji: "🍊", names: ["orange","lemon"] },
-    { id: "stone",   label: "Stone & pome",emoji: "🍎", names: ["apple","pear","grapes"] },
+    { id: "stone",   label: "Stone & pome",emoji: "🍎", names: ["apple","apple - gala","apple - fuji","apple - granny smith","apple - honeycrisp","pear","grapes"] },
     { id: "avocado", label: "Avocado",     emoji: "🥑", names: ["avocado"] },
   ],
   berries: [
@@ -144,8 +144,8 @@ const SUBCATS = {
   ],
   beverage: [
     { id: "tea",label:"Tea",emoji:"🍵", names: ["tea","matcha","earl grey","chamomile","mint tea","oolong"] },
-    { id: "coffee_bev",label:"Coffee",emoji:"☕", names: ["coffee"] },
-    { id: "juice",label:"Juice & drinks",emoji:"🧃", names: ["juice","lemonade","coconut water"] },
+    { id: "coffee_bev",label:"Coffee",emoji:"☕", names: ["coffee","espresso","americano","latte","cappuccino","cold brew"] },
+    { id: "juice",label:"Juice & drinks",emoji:"🧃", names: ["juice","lemonade","coconut water","water","sparkling water"] },
   ],
 };
 
@@ -170,6 +170,9 @@ const NDB = {
   "egg":                 {cal:155,protein:13,  carbs:1.1, sugar:1.1, fiber:0,   fat:11,  unit:"g", portion:50},
   "tofu":                {cal:76, protein:8,   carbs:1.9, sugar:0.5, fiber:0.3, fat:4.8, unit:"g", portion:100},
   "lentils":             {cal:116,protein:9,   carbs:20,  sugar:1.8, fiber:7.9, fat:0.4, unit:"g", portion:100},
+  "lentils - brown":     {cal:116,protein:9,   carbs:20,  sugar:1.8, fiber:7.9, fat:0.4, unit:"g", portion:100},
+  "lentils - green":     {cal:118,protein:9,   carbs:20.1,sugar:1.7, fiber:8.3, fat:0.4, unit:"g", portion:100},
+  "lentils - red":       {cal:116,protein:9,   carbs:20,  sugar:1.8, fiber:7.9, fat:0.4, unit:"g", portion:100},
   "chickpeas":           {cal:164,protein:8.9, carbs:27,  sugar:4.8, fiber:7.6, fat:2.6, unit:"g", portion:120},
   "black beans":         {cal:132,protein:8.9, carbs:24,  sugar:0.3, fiber:8.7, fat:0.5, unit:"g", portion:120},
   "edamame":             {cal:122,protein:11,  carbs:9.9, sugar:2.2, fiber:5.2, fat:5.2, unit:"g", portion:100},
@@ -199,6 +202,10 @@ const NDB = {
   "asparagus":           {cal:20, protein:2.2, carbs:3.9, sugar:1.9, fiber:2.1, fat:0.1, unit:"g", portion:90},
   "banana":              {cal:89, protein:1.1, carbs:23,  sugar:12,  fiber:2.6, fat:0.3, unit:"g", portion:120},
   "apple":               {cal:52, protein:0.3, carbs:14,  sugar:10,  fiber:2.4, fat:0.2, unit:"g", portion:180},
+  "apple - gala":        {cal:52, protein:0.3, carbs:14,  sugar:11.1,fiber:2.4, fat:0.2, unit:"g", portion:172},
+  "apple - fuji":        {cal:63, protein:0.2, carbs:15.2,sugar:12.5,fiber:2.1, fat:0.2, unit:"g", portion:190},
+  "apple - granny smith":{cal:58, protein:0.4, carbs:13.6,sugar:10.5,fiber:2.8, fat:0.2, unit:"g", portion:170},
+  "apple - honeycrisp":  {cal:57, protein:0.2, carbs:15.2,sugar:12.4,fiber:2.7, fat:0.2, unit:"g", portion:182},
   "avocado":             {cal:160,protein:2,   carbs:8.5, sugar:0.7, fiber:6.7, fat:14.7,unit:"g", portion:100},
   "orange":              {cal:47, protein:0.9, carbs:12,  sugar:9.4, fiber:2.4, fat:0.1, unit:"g", portion:130},
   "mango":               {cal:60, protein:0.8, carbs:15,  sugar:13.7,fiber:1.6, fat:0.4, unit:"g", portion:165},
@@ -298,9 +305,18 @@ const NDB = {
   "earl grey tea":           {cal:1,  protein:0.2, carbs:0.3, sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:240},
   "oolong tea":              {cal:1,  protein:0.1, carbs:0.1, sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:240},
   "coffee - black":          {cal:1,  protein:0.1, carbs:0,   sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:240},
+  "espresso":                {cal:9,  protein:0.1, carbs:1.7, sugar:0,   fiber:0,   fat:0.2, unit:"ml", portion:30},
+  "americano":               {cal:1,  protein:0.1, carbs:0.2, sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:240},
+  "cold brew coffee":        {cal:2,  protein:0.1, carbs:0.3, sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:240},
+  "latte":                   {cal:41, protein:2.7, carbs:4,   sugar:4.2, fiber:0,   fat:1.7, unit:"ml", portion:240},
+  "latte - iced":            {cal:35, protein:2.4, carbs:3.6, sugar:3.8, fiber:0,   fat:1.4, unit:"ml", portion:360},
+  "cappuccino":              {cal:31, protein:2.1, carbs:3.1, sugar:3.3, fiber:0,   fat:1.3, unit:"ml", portion:180},
   "orange juice":            {cal:45, protein:0.7, carbs:10,  sugar:8.4, fiber:0.2, fat:0.2, unit:"ml", portion:240},
   "coconut water":           {cal:19, protein:0.7, carbs:3.7, sugar:2.6, fiber:0,   fat:0.2, unit:"ml", portion:240},
   "lemonade":                {cal:40, protein:0.1, carbs:11,  sugar:10,  fiber:0,   fat:0,   unit:"ml", portion:240},
+  "water":                   {cal:0,  protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:240},
+  "sparkling water":         {cal:0,  protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:0,   unit:"ml", portion:355},
+  "ice":                     {cal:0,  protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:0,   unit:"g",  portion:100},
   /* STAPLES */
   "peanut butter":           {cal:588,protein:25,  carbs:20,  sugar:9,   fiber:6,   fat:50,  unit:"g", portion:32},
   "honey":                   {cal:304,protein:0.3, carbs:82,  sugar:82,  fiber:0,   fat:0,   unit:"g", portion:21},
@@ -321,7 +337,7 @@ const NDB = {
   "green onion":         {cal:32, protein:1.8, carbs:7.3, sugar:2.3, fiber:2.6, fat:0.2, unit:"g", portion:30},
   "cabbage":             {cal:25, protein:1.3, carbs:5.8, sugar:3.2, fiber:2.5, fat:0.1, unit:"g", portion:100},
   "vinegar":             {cal:3,  protein:0,   carbs:0.1, sugar:0,   fiber:0,   fat:0,   unit:"tbsp",portion:1},
-  "olive oil":           {cal:884,protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:100, unit:"g", portion:14},
+  "olive oil":           {cal:884,protein:0,   carbs:0,   sugar:0,   fiber:0,   fat:100, unit:"g", portion:13.5},
 };
 
 /* Default cooking methods per food (keyed by normalised name) */
@@ -404,6 +420,10 @@ const COOK_METHODS_MAP = {
   /* FRUITS */
   "banana":                ["Raw","Blended","Frozen","Baked"],
   "apple":                 ["Raw","Baked","Cooked"],
+  "apple - gala":          ["Raw","Baked","Cooked"],
+  "apple - fuji":          ["Raw","Baked","Cooked"],
+  "apple - granny smith":  ["Raw","Baked","Cooked"],
+  "apple - honeycrisp":    ["Raw","Baked","Cooked"],
   "avocado":               ["Raw","Mashed","Sliced"],
   "orange":                ["Raw","Juiced"],
   "mango":                 ["Raw","Blended","Grilled"],
@@ -421,6 +441,9 @@ const COOK_METHODS_MAP = {
   /* LEGUMES & PLANT PROTEIN */
   "tofu":                  ["Raw","Pan-fried","Baked","Scrambled","Grilled"],
   "lentils":               ["Cooked","Boiled"],
+  "lentils - brown":       ["Cooked","Boiled"],
+  "lentils - green":       ["Cooked","Boiled"],
+  "lentils - red":         ["Cooked","Boiled"],
   "chickpeas":             ["Cooked","Roasted"],
   "black beans":           ["Cooked"],
   "edamame":               ["Raw","Boiled","Steamed"],
@@ -493,20 +516,64 @@ const COOK_METHODS_MAP = {
   "earl grey tea":         ["Brewed"],
   "oolong tea":            ["Brewed"],
   "coffee - black":        ["Brewed","Iced","Espresso"],
+  "espresso":              ["Hot shot","Double shot","Iced"],
+  "americano":             ["Hot","Iced"],
+  "cold brew coffee":      ["Cold brew","Iced"],
+  "latte":                 ["Hot","Iced"],
+  "latte - iced":          ["Iced"],
+  "cappuccino":            ["Hot","Iced"],
   "orange juice":          ["As-is","Fresh-squeezed","Chilled"],
   "coconut water":         ["As-is","Chilled"],
   "lemonade":              ["As-is","Chilled"],
+  "water":                 ["Cold","Room temp"],
+  "sparkling water":       ["Chilled","As-is"],
+  "ice":                   ["Cubed","Crushed"],
 };
 
 /* Count-based portions: 1 egg = 50g, 1 carrot = 60g, etc.
    countLabel = what to call one unit; countGrams = medium/default grams per one unit */
-/* Nutrient sort options for the food browser — per 100g, sorts remaining list */
+/* Nutrient filters/sorts for the food browser — values are per 100g or per 100ml */
 const NUTRIENT_FILTERS = [
-  {id:"hiprotein", label:"High Protein", emoji:"💪", sort:(a,b)=>(b.nutrition.protein||0)-(a.nutrition.protein||0), value:f=>rnd(f.nutrition.protein||0,1)+"g prot"},
-  {id:"lowcal",    label:"Low Calorie",  emoji:"🔥", sort:(a,b)=>(a.nutrition.cal||0)-(b.nutrition.cal||0),     value:f=>rnd(f.nutrition.cal||0)+" cal"},
-  {id:"hifiber",   label:"High Fiber",   emoji:"🌾", sort:(a,b)=>(b.nutrition.fiber||0)-(a.nutrition.fiber||0),  value:f=>rnd(f.nutrition.fiber||0,1)+"g fiber"},
-  {id:"lowcarb",   label:"Low Carb",     emoji:"🥑", sort:(a,b)=>(a.nutrition.carbs||0)-(b.nutrition.carbs||0),  value:f=>rnd(f.nutrition.carbs||0,1)+"g carb"},
-  {id:"hifat",     label:"High Fat",     emoji:"🧈", sort:(a,b)=>(b.nutrition.fat||0)-(a.nutrition.fat||0),      value:f=>rnd(f.nutrition.fat||0,1)+"g fat"},
+  {
+    id:"hiprotein",
+    label:"High Protein",
+    emoji:"💪",
+    passes:f=>(Number(f.nutrition?.protein)||0) >= 10,
+    primary:(f)=>-(Number(f.nutrition?.protein)||0),
+    value:f=>rnd(f.nutrition.protein||0,1)+"g prot"
+  },
+  {
+    id:"lowcal",
+    label:"Low Calorie",
+    emoji:"🔥",
+    passes:f=>(Number(f.nutrition?.cal)||0) <= 120,
+    primary:(f)=>(Number(f.nutrition?.cal)||0),
+    value:f=>rnd(f.nutrition.cal||0)+" cal"
+  },
+  {
+    id:"hifiber",
+    label:"High Fiber",
+    emoji:"🌾",
+    passes:f=>(Number(f.nutrition?.fiber)||0) >= 5,
+    primary:(f)=>-(Number(f.nutrition?.fiber)||0),
+    value:f=>rnd(f.nutrition.fiber||0,1)+"g fiber"
+  },
+  {
+    id:"lowcarb",
+    label:"Low Carb",
+    emoji:"🥑",
+    passes:f=>(Number(f.nutrition?.carbs)||0) <= 12,
+    primary:(f)=>(Number(f.nutrition?.carbs)||0),
+    value:f=>rnd(f.nutrition.carbs||0,1)+"g carb"
+  },
+  {
+    id:"hifat",
+    label:"High Fat",
+    emoji:"🧈",
+    passes:f=>(Number(f.nutrition?.fat)||0) >= 10,
+    primary:(f)=>-(Number(f.nutrition?.fat)||0),
+    value:f=>rnd(f.nutrition.fat||0,1)+"g fat"
+  },
 ];
 
 /* Universal cooking methods — always available as options in the food editor */
@@ -533,6 +600,10 @@ const COUNT_LABELS = {
   "avocado":               {label:"avocado",   grams:200, sizes:{small:140,medium:200,large:280}},
   "banana":                {label:"banana",    grams:120, sizes:{small:90,medium:120,large:160}},
   "apple":                 {label:"apple",     grams:180, sizes:{small:140,medium:180,large:240}},
+  "apple - gala":          {label:"apple",     grams:172, sizes:{small:140,medium:172,large:210}},
+  "apple - fuji":          {label:"apple",     grams:190, sizes:{small:150,medium:190,large:240}},
+  "apple - granny smith":  {label:"apple",     grams:170, sizes:{small:135,medium:170,large:220}},
+  "apple - honeycrisp":    {label:"apple",     grams:182, sizes:{small:145,medium:182,large:230}},
   "orange":                {label:"orange",    grams:130, sizes:{small:90,medium:130,large:180}},
   "lemon":                 {label:"lemon",     grams:60, sizes:{small:45,medium:60,large:85}},
   "pear":                  {label:"pear",      grams:180, sizes:{small:140,medium:180,large:230}},
@@ -554,7 +625,7 @@ const COUNT_LABELS = {
   "creatine monohydrate":  {label:"scoop",     grams:5},
   "collagen peptides":     {label:"scoop",     grams:20},
   "butter":                {label:"tbsp",      grams:14},
-  "olive oil":             {label:"tbsp",      grams:14},
+  "olive oil":             {label:"tbsp",      grams:13.5},
   "coconut oil":           {label:"tbsp",      grams:14},
   "honey":                 {label:"tbsp",      grams:21},
   "peanut butter":         {label:"tbsp",      grams:32},
@@ -584,6 +655,9 @@ const SEED = [
   {n:"Egg",                 e:"🥚", t:["protein"]},
   {n:"Tofu",                e:"🟦", t:["protein"]},
   {n:"Lentils",             e:"🫘", t:["protein","hifiber"]},
+  {n:"Lentils - brown",     e:"🫘", t:["protein","hifiber"]},
+  {n:"Lentils - green",     e:"🫘", t:["protein","hifiber"]},
+  {n:"Lentils - red",       e:"🫘", t:["protein","hifiber"]},
   {n:"Chickpeas",           e:"🫘", t:["protein","hifiber"]},
   {n:"Black beans",         e:"🫘", t:["protein","hifiber"]},
   {n:"Edamame",             e:"🫛", t:["protein","hifiber"]},
@@ -613,6 +687,10 @@ const SEED = [
   {n:"Asparagus",           e:"🌿", t:["veg","hifiber","lowcal"]},
   {n:"Banana",              e:"🍌", t:["fruit"]},
   {n:"Apple",               e:"🍎", t:["fruit","hifiber"]},
+  {n:"Apple - gala",        e:"🍎", t:["fruit","hifiber"]},
+  {n:"Apple - fuji",        e:"🍎", t:["fruit","hifiber"]},
+  {n:"Apple - granny smith",e:"🍏", t:["fruit","hifiber"]},
+  {n:"Apple - honeycrisp",  e:"🍎", t:["fruit","hifiber"]},
   {n:"Avocado",             e:"🥑", t:["fruit","hifiber"]},
   {n:"Orange",              e:"🍊", t:["fruit"]},
   {n:"Mango",               e:"🥭", t:["fruit"]},
@@ -713,9 +791,18 @@ const SEED = [
   {n:"Oolong tea",                  e:"🍵", t:["beverage","lowcal"]},
   /* BEVERAGES */
   {n:"Coffee - black",              e:"☕", t:["beverage","lowcal"]},
+  {n:"Espresso",                    e:"☕", t:["beverage","lowcal"]},
+  {n:"Americano",                   e:"☕", t:["beverage","lowcal"]},
+  {n:"Cold brew coffee",            e:"🧊", t:["beverage","lowcal"]},
+  {n:"Latte",                       e:"☕", t:["beverage","milk","dairy"]},
+  {n:"Latte - iced",                e:"🧋", t:["beverage","milk","dairy"]},
+  {n:"Cappuccino",                  e:"☕", t:["beverage","milk","dairy"]},
   {n:"Orange juice",                e:"🍊", t:["beverage","fruit"]},
   {n:"Coconut water",               e:"🥥", t:["beverage","lowcal"]},
   {n:"Lemonade",                    e:"🍋", t:["beverage"]},
+  {n:"Water",                       e:"💧", t:["beverage","lowcal"]},
+  {n:"Sparkling water",             e:"🫧", t:["beverage","lowcal"]},
+  {n:"Ice",                         e:"🧊", t:["beverage","lowcal"]},
   /* STAPLES */
   {n:"Peanut butter",               e:"🥜", t:["protein","hifiber"]},
   {n:"Honey",                       e:"🍯", t:["baking","seasoning"]},
@@ -1375,7 +1462,7 @@ function Modal({children,onClose,width=600,level=1}) {
 
 /* Run on load: dedup, fix tags, sync seed foods, add missing seeds & categories.
    Version-stamped so the heavy cleanup runs once after an update. */
-const MIGRATION_VERSION = "v5";
+const MIGRATION_VERSION = "v6";
 function migrateStoredData() {
   try {
     // 1. Categories: remove hiprotein, add missing defaults
@@ -1910,6 +1997,11 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
       return true;
     });
 
+    if (activeSorts.length > 0) {
+      const chosen = activeSorts.map(id=>NUTRIENT_FILTERS.find(f=>f.id===id)).filter(Boolean);
+      arr = arr.filter(food => chosen.every(flt => flt.passes(food)));
+    }
+
     if (searching) {
       // Rank: exact (0) > starts-with (1) > word-start (2) > contains (3)
       const rank = (name) => {
@@ -1925,13 +2017,22 @@ function Pantry({ foods, cats, catById, userSubcats, onOpen, onAdd, onManageCats
         return a.name.localeCompare(b.name);
       });
     } else if (activeSorts.length > 0) {
-      // Multi-sort: first selected is primary, rest are tiebreakers
+      const chosen = activeSorts.map(id=>NUTRIENT_FILTERS.find(f=>f.id===id)).filter(Boolean);
+      const multi = chosen.length > 1;
       arr.sort((a, b) => {
-        for (const id of activeSorts) {
-          const flt = NUTRIENT_FILTERS.find(f=>f.id===id);
-          if (!flt) continue;
-          const d = flt.sort(a, b);
-          if (d !== 0) return d;
+        if (multi) {
+          const calDiff = (Number(a.nutrition?.cal)||0) - (Number(b.nutrition?.cal)||0);
+          if (calDiff !== 0) return calDiff;
+          for (const flt of chosen) {
+            const d = flt.primary(a) - flt.primary(b);
+            if (d !== 0) return d;
+          }
+        } else {
+          const flt = chosen[0];
+          if (flt) {
+            const d = flt.primary(a) - flt.primary(b);
+            if (d !== 0) return d;
+          }
         }
         return a.name.localeCompare(b.name);
       });
@@ -2103,7 +2204,7 @@ function CatTab({ active, onClick, label, count, p }) {
     }}>
       {p && <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.hex, display: "inline-block" }} />}
       {label}
-      <span style={{ fontFamily: "monospace", fontSize: 10.5, opacity: 0.7 }}>{count}</span>
+      <span suppressHydrationWarning style={{ fontFamily: "monospace", fontSize: 10.5, opacity: 0.7 }}>{count}</span>
     </button>
   );
 }
@@ -3407,6 +3508,7 @@ function AddRecipeToPlanModal({recipes,onPick,onClose}){
   const [weightMode,setWeightMode]=useState(false);
   const [weightAmount,setWeightAmount]=useState("");
   const [weightUnit,setWeightUnit]=useState("g");
+  const filtered=recipes.filter(r=>r.name.toLowerCase().includes(q.toLowerCase()));
 
   if(chosen){
     const totalG=recipeWeightG(chosen);
