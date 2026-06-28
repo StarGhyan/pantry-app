@@ -1539,6 +1539,11 @@ function migrateStoredData() {
 migrateStoredData();
 
 export default function App() {
+  /* Prevent SSR/hydration mismatch — this app is 100% client-side (localStorage).
+     Render nothing until mounted on the client. */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const [section, setSection] = useState("nutrition");
 
   /* ── AUTH ── */
@@ -1758,6 +1763,8 @@ export default function App() {
     : isWorkout
     ? [{id:"exercises",label:"Exercises",e:"🏋️"},{id:"routines",label:"Routines",e:"📋"},{id:"plan",label:"Plan",e:"📅"}]
     : [{id:"tasks",label:"Tasks",e:"📋"},{id:"collections",label:"Collections",e:"📁"},{id:"plan",label:"Plan",e:"📅"},{id:"done",label:"Done",e:"✅"}];
+
+  if (!mounted) return null;
 
   return <div className="app-shell" style={{fontFamily:"system-ui,sans-serif",color:T.ink}}>
     {/* Desktop sidebar */}
