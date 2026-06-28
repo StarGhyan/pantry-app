@@ -1520,6 +1520,10 @@ function migrateStoredData() {
       if (!names.has(key)) { foods.push(sf); names.add(key); }
     }
 
+    // Final dedup by ID — removes any corrupt duplicate entries
+    const seenIds = new Set();
+    foods = foods.filter(f => { if (seenIds.has(f.id)) return false; seenIds.add(f.id); return true; });
+
     localStorage.setItem("pantry_foods", JSON.stringify(foods));
     localStorage.setItem("pantry_migration", MIGRATION_VERSION);
 
@@ -1582,7 +1586,12 @@ export default function App() {
   }
 
   /* ── NUTRITION STATE ── */
-  const [foods, setFoods] = useState(() => load("foods", buildSeedFoods()));
+  const [foods, setFoods] = useState(() => {
+    const raw = load("foods", buildSeedFoods());
+    // Deduplicate by ID — keeps first occurrence, removes any corrupt duplicates
+    const seen = new Set();
+    return raw.filter(f => { if (seen.has(f.id)) return false; seen.add(f.id); return true; });
+  });
   const [cats, setCats] = useState(() => load("cats", DEFAULT_CATEGORIES));
   const [recipes, setRecipes] = useState(() => load("recipes", []));
   const [plan, setPlan] = useState(() => {
